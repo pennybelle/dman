@@ -1,2 +1,2 @@
-# DayZ_Server_Manager
+# DayZ Server Manager
 Custom Script for Managing the PCGamers.win DayZ Server
