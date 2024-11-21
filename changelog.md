@@ -6,6 +6,8 @@
 - Script now converts all mod folders to lowercase
 
 ## Server
+- Added most of the RaG items to traders.
+  - This includes Cabins and Base Building kits.
 - Added Basic Territories Updated mod by DaemonForge
   - Place flagpole, add flag, then interact.
   - Currently set to 100m radius.
