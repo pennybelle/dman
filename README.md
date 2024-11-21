@@ -2,7 +2,7 @@
 Custom Script for Managing the PCGamers.win DayZ Server
 
 ### WARNING
-Use this script at your own risk. I've modified to suit my specific needs.
+Use this script at your own risk. I've modified to suit my specific needs. <br/>
 You are free to copy or fork the script and edit to your liking. 
 
 ### Basic Usage
