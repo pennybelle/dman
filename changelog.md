@@ -1,11 +1,11 @@
 # Changelog: 21 Nov 2024
 
-# Script
+## Script
 - Moved config settings to main file (for now)
 - Added Glob Pattern for Case-Insensitive Match on Mod-Key-folder
 - Script now converts all mod folders to lowercase
 
-# Server
+## Server
 - Added Basic Territories Updated mod by DaemonForge
 - Added Trader mod by Dr. Jones 
 - Added Advanced Banking mod by Krypton91
