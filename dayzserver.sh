@@ -21,8 +21,10 @@ profiles="-profiles=${HOME}/serverprofile/"
 
 # DayZ Mods from Steam Workshop
 # Edit the .workshop.cfg and add one Mod Number per line. 
-# To enable mods, remove the # below and list the Mods like this: "@mod1;@mod2;@spaces work" . Lowercase only .
+# To enable mods, remove the # below and list the Mods like this: "@mod1;@mod2;@spaces work". Lowercase only.
 #workshop=""
+# To enable serverside mods, remove the # below and list the Mods like this: "@servermod1;@server mod2". Lowercase oly.
+#servermods=""
 
 # modify carefully! server won't start if syntax is corrupt!
 dayzparameter=" -config=${config} -port=${port} -freezecheck ${BEpath} ${profiles} ${logs}"
@@ -83,7 +85,7 @@ fn_start_dayz(){
 		sleep 0.5
 		sleep 0.5
 		cd ${HOME}/serverfiles
-		tmux new-session -d -x 23 -y 80 -s $(whoami)-tmux ./DayZServer $dayzparameter -mod="$workshop"
+		tmux new-session -d -x 23 -y 80 -s $(whoami)-tmux ./DayZServer $dayzparameter -mod="$workshop" -servermod="$servermods"
 		sleep 1
 		cd ${HOME}
 		date > ${HOME}/.dayzlockfile
