@@ -10,3 +10,4 @@ You are free to copy or fork the script and edit to your liking.
 - Edit the script and change the config settings. i.e Username, etc.
 - Then type: chmod +x dayzserver.sh <br/>
 You will get instructions on how to start stop etc after first run.
+- Mod ID's are stored in .workshop.cfg (you'll need to create it)
