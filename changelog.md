@@ -28,3 +28,4 @@
   - Not available to buy at the moment.
   - Can be found in the wild. Rare loot.
   - Currently not working with Inventory++ mod.
+- Added Much Stuff Pack mod by Helkhiana
