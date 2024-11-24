@@ -72,15 +72,25 @@ fn_status_dayz(){
 	dayzstatus=$(tmux list-sessions -F $(whoami)-tmux 2> /dev/null | grep -Ecx $(whoami)-tmux)
 }
 
+fn_clear_logs(){
+                # Delete *.RPT and *.log files from the profiles directory
+                profiles_dir="${HOME}/serverprofile" # Update this path if necessary
+                if [ -d "${profiles_dir}" ]; then
+                        find "${profiles_dir}" -type f \( -name "*.RPT" -o -name "*.log" \) -delete
+                        printf "[ ${green}DayZ${default} ] Cleared old .RPT and .log files from profiles directory.\n"
+                fi
+}
+
 fn_start_dayz(){
 	fn_status_dayz
 	if [ "${dayzstatus}" == "1" ]; then
 		printf "[ ${yellow}DayZ${default} ] Server already running.\n"
 		exit 1
 	else
-                # fn_backup_dayz
-                # fn_update_dayz
-                # fn_workshop_mods
+                fn_backup_dayz
+                fn_update_dayz
+                fn_workshop_mods
+		fn_clear_logs
 		printf "[ ${green}DayZ${default} ] Starting server...\n"
 		sleep 0.5
 		sleep 0.5
