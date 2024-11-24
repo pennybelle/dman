@@ -1,9 +1,10 @@
-# Changelog: 21 Nov 2024
+# Changelog: Nov 2024
 
 ## Script
 - Moved config settings to main file (for now)
 - Added Glob Pattern for Case-Insensitive Match on Mod-Key-folder
 - Script now converts all mod folders to lowercase
+- Added a function to clear the old log files at start up
 
 ## Server
 - Added most of the RaG items to traders.
