@@ -4,30 +4,8 @@
 ### Original script by thelastnoc
 #############################################
 
-# DayZ SteamID
-appid=223350
-dayz_id=221100
-#stable=223350
-#exp_branch=1042420
-
-# IMPORTANT PARAMETERS
-steamlogin=CHANGEME
-config=serverDZ.cfg
-port=2302
-BEpath="-BEpath=${HOME}/serverfiles/battleye/"
-profiles="-profiles=${HOME}/serverprofile/"
-# optional - just remove the # to enable
-#logs="-dologs -adminlog -netlog"
-
-# DayZ Mods from Steam Workshop
-# Edit the .workshop.cfg and add one Mod Number per line. 
-# To enable mods, remove the # below and list the Mods like this: "@mod1;@mod2;@spaces work". Lowercase only.
-#workshop=""
-# To enable serverside mods, remove the # below and list the Mods like this: "@servermod1;@server mod2". Lowercase oly.
-#servermods=""
-
-# modify carefully! server won't start if syntax is corrupt!
-dayzparameter=" -config=${config} -port=${port} -freezecheck ${BEpath} ${profiles} ${logs}"
+### NO NEED TO EDIT ANYTHING IN THIS FILE ###
+### Changes should be made in .config.ini ###
 
 if [ "${ansi}" != "off" ]; then
         # echo colors
@@ -42,6 +20,51 @@ if [ "${ansi}" != "off" ]; then
         cyan="\e[36m"
         # carriage return & erase to end of line
         creeol="\r\033[K"
+fi
+
+# Define the config file path
+CONFIG_FILE=".config.ini"
+
+# Default content of the config.ini file
+DEFAULT_CONFIG="# DayZ SteamID
+appid=223350
+dayz_id=221100
+#stable=223350
+#exp_branch=1042420
+
+# IMPORTANT PARAMETERS
+steamlogin=CHANGEME
+config=serverDZ.cfg
+port=2302
+BEpath=\"-BEpath=\${HOME}/serverfiles/battleye/\"
+profiles=\"-profiles=\${HOME}/serverprofile/\"
+# optional - just remove the # to enable
+#logs=\"-dologs -adminlog -netlog\"
+
+# DayZ Mods from Steam Workshop
+# Edit the .workshop.cfg and add one Mod Number per line.
+# To enable mods, remove the # below and list the Mods like this: \"@mod1;@mod2;@spaces work\". Lowercase only.
+#workshop=\"\"
+# To enable serverside mods, remove the # below and list the Mods like this: \"@servermod1;@server mod2\". Lowercase only.
+#servermods=\"\"
+
+# modify carefully! server won't start if syntax is corrupt!
+dayzparameter=\" -config=\${config} -port=\${port} -freezecheck \${BEpath} \${profiles} \${logs}\""
+
+# Check if the config.ini file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    printf "[ ${yellow}Warning${default} ] ${CONFIG_FILE} file not found.\n"
+    echo -e "$DEFAULT_CONFIG" > "$CONFIG_FILE"
+    printf "[ ${green}Fixed${default} ] Default ${lightyellow}${CONFIG_FILE}${default} created.\n"
+    printf "[ ${red}Important${default} ] Please edit the ${CONFIG_FILE} file before running this script again.\n"
+    chmod 600 "$CONFIG_FILE"
+    exit 1
+else
+    printf "[ ${green}Success${default} ] Config file found. Reading values...\n"
+    # Source the config file to load its variables
+    source "$CONFIG_FILE"
+    printf "[ ${green}Finished${default} ] Configuration file loaded.\n"
+    chmod 600 "$CONFIG_FILE"
 fi
 
 fn_checkroot_dayz(){
