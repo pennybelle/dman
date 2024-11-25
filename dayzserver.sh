@@ -26,7 +26,8 @@ fi
 CONFIG_FILE=".config.ini"
 
 # Default content of the config.ini file
-DEFAULT_CONFIG="# DayZ SteamID
+DEFAULT_CONFIG="
+# DayZ SteamID
 appid=223350
 dayz_id=221100
 #stable=223350
