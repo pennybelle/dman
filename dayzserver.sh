@@ -68,6 +68,12 @@ else
     chmod 600 "$CONFIG_FILE"
 fi
 
+# Check if steamlogin is set to CHANGEME
+if [ "$steamlogin" = "CHANGEME" ]; then
+	printf "[ ${red}Error${default} ] Please update ${CONFIG_FILE} before running this script again.\n"
+	exit 1
+fi
+
 fn_checkroot_dayz(){
 	if [ "$(whoami)" == "root" ]; then
 	  printf "[ ${red}FAIL${default} ] ${yellow}Do NOT run this script as root!\n"
