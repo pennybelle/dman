@@ -8,7 +8,7 @@
 - Script now converts all mod folders to lowercase
 - Added a function to clear the old log files at start up
 
-## Server
+## Server Additions (Nothing to do with the main scripts)
 - Added most of the RaG items to traders.
   - This includes Cabins and Base Building kits.
 - Added Basic Territories Updated mod by DaemonForge
