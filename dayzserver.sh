@@ -332,23 +332,26 @@ fn_backup_dayz(){
 
     # Format for backup files: missionfolder-Month-Day-Hour-Minute.tar
     backup_file="${HOME}/backup/${missionfolder}-$(date +%m-%d-%H-%M).tar"
+    profile_backup_file="${HOME}/backup/serverprofile-$(date +%m-%d-%H-%M).tar"
 
-    # Create the backup
+    # Create the backup of the mission folder
     if [ "${dayzstatus}" == "0" ]; then
         printf "[ ${green}DayZ${default} ] Creating backup of Missionfolder: ${cyan}${missionfolder}${default}\n"
         tar -cf "$backup_file" -C "${HOME}/serverfiles/mpmissions" "${missionfolder}"
+	    # Backup the serverprofile directory while excluding .log and .RPT files
+	    printf "[ ${green}DayZ${default} ] Creating backup of Serverprofile directory: ${cyan}${HOME}/serverprofile${default}\n"
+	    tar --exclude='*.log' --exclude='*.RPT' -cf "$profile_backup_file" -C "${HOME}" "serverprofile"      	
     else
         fn_stop_dayz
-        printf "[ ${green}DayZ${default} ] Creating backup of Missionfolder: ${cyan}${missionfolder}${default}\n"
-        tar -cf "$backup_file" -C "${HOME}/serverfiles/mpmissions" "${missionfolder}"
-        sleep 0.5
         fn_start_dayz
     fi
 
     # Delete backups older than 2 days
     printf "[ ${green}DayZ${default} ] Cleaning up backups older than 2 days...\n"
     find "${HOME}/backup" -type f -name "${missionfolder}-*.tar" -mtime +2 -exec rm -f {} \;
+    find "${HOME}/backup" -type f -name "serverprofile-*.tar" -mtime +2 -exec rm -f {} \;
 }
+
 
 fn_wipe_dayz(){
 	missionfolder=$(grep template ${HOME}/serverfiles/serverDZ.cfg | tr '[:blank:]"' ' ' | tr -s ' ' | cut -d \  -f3)
