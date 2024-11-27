@@ -5,7 +5,7 @@ Currently being used without issue on `#1 [UK|PCGAMERS]`
 ### WARNING
 Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/dayzserver.sh) at your own risk. I've modified to suit my specific needs. <br/>
 You are free to copy or fork the script and edit to your liking.<br/>
-Just please don't remove the credits at the top of the main script. Thank you.
+All I ask is that you don't remove the credits at the top of the main script. Thank you.
 
 ### Basic Usage
 - Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
