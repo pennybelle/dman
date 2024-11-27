@@ -51,5 +51,5 @@ CFTools shutdowns the server and `/home/dayz/dayzserver.sh monitor` will restart
 
 <br>
 
-**MPORTANT NOTE** `monitor` will only restart the server if a remote shutdown (RCon) command was used.<br/>
+**MPORTANT NOTE**<br/> `monitor` will only restart the server if a remote shutdown (RCon) command was used.<br/>
 `dayzserver.sh shutdown` done from the Linux command line will shutdown the server and prevent `monitor` from restarting it.
