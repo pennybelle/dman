@@ -33,6 +33,9 @@ You will get instructions on how to start stop etc after first run.
 - The script will automatically check and append mod names each time you run: `./dayzserver.sh workshop`<br/>
 - If a mod has been updated by the developer an optional notification can be sent to your Discord channel. <br/>
    - Just add your Discord URL in `.config.ini`
+- You still need to manually add the `@modname(s)` to the `workshop=""` setting in `.config.ini`
+   - This is because you might need to put them in a specific order, or remove one for testing, but not have to redownload it again.
+- **.workshop.cfg** tells the script which MODS need to be downloaded. It does NOT add them to `workshop=""`. You do that yourself!
 
 ## Auto Restarts and Updates
 The following cron jobs can be added to your DayZ Server users contab:<br/>
