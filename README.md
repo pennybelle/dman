@@ -9,7 +9,6 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 
 ### Basic Usage
 - Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
-- Edit the script and change the config settings. i.e `steamlogin`, etc.
 - Then type: `chmod +x dayzserver.sh` <br/>
 You will get instructions on how to start stop etc after first run.
 
