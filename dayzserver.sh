@@ -41,6 +41,9 @@ profiles=\"-profiles=\${HOME}/serverprofile/\"
 # optional - just remove the # to enable
 #logs=\"-dologs -adminlog -netlog\"
 
+# Discord Notifications.
+discord_webhook_url=""
+
 # DayZ Mods from Steam Workshop
 # Edit the .workshop.cfg and add one Mod Number per line.
 # To enable mods, remove the # below and list the Mods like this: \"@mod1;@mod2;@spaces work\". Lowercase only.
@@ -299,11 +302,20 @@ fn_workshop_mods(){
         declare -a workshopID
         workshopfolder="${HOME}/serverfiles/steamapps/workshop/content/221100"
         workshoplist=""
+         timestamp_file="${HOME}/mod_timestamps.json"
+        
         if [ ! -f "${HOME}/.workshop.cfg" ]; then
                 wget -P ${HOME}/ -qN https://raw.githubusercontent.com/thelastnoc/dayz-sa_linuxserver/master/script/.workshop.cfg
         fi
         mapfile -t workshopID < "${HOME}/.workshop.cfg"
-        # gather mods
+
+        # Initialize timestamp file if it doesn't exist
+        if [ ! -f "$timestamp_file" ]; then
+                echo "{}" > "$timestamp_file"
+                echo "Timestamp file '$timestamp_file' created."
+        fi
+
+        # Gather mods
         for i in "${workshopID[@]}"
         do
                 if [[ $i =~ ^[0-9] ]] && [ $(expr length $i) -gt 7 ]; then
@@ -311,42 +323,57 @@ fn_workshop_mods(){
                 fi
         done
 	
-	# download mods
-	${HOME}/steamcmd/steamcmd.sh +force_install_dir ${HOME}/serverfiles +login "${steamlogin}" ${workshoplist} +quit
+        # Download mods
+        ${HOME}/steamcmd/steamcmd.sh +force_install_dir ${HOME}/serverfiles +login "${steamlogin}" ${workshoplist} +quit
 
-	# link mods
-	for i in "${workshopID[@]}"
-	do
-	    if [[ $i =~ ^[0-9] ]] && [ $(expr length $i) -gt 7 ] && [ -d "${workshopfolder}/$i" ]; then
-	        modname=$(cut -d '"' -f 2 <<< $(grep name ${workshopfolder}/$i/meta.cpp))
-	        
-	        # Convert modname to lowercase
-	        modname=$(echo "${modname}" | tr '[:upper:]' '[:lower:]')
-	        
-	        # Rename main mod folder to lowercase if necessary
-	        if [ ! -d "${HOME}/serverfiles/@${modname}" ]; then
-	            mv "${HOME}/serverfiles/@$(basename "${workshopfolder}/$i")" "${HOME}/serverfiles/@${modname}" 2>/dev/null
-	        fi
-	        
-	        # Create a symlink if it doesn't already exist
-	        if [ ! -d "${HOME}/serverfiles/@${modname}" ]; then
-	            ln -s ${workshopfolder}/$i "${HOME}/serverfiles/@${modname}" &> /dev/null
-	        fi
-	    fi
-	done
+        # Link mods and check for updates
+        for i in "${workshopID[@]}"
+        do
+            if [[ $i =~ ^[0-9] ]] && [ $(expr length $i) -gt 7 ] && [ -d "${workshopfolder}/$i" ]; then
+                modname=$(cut -d '"' -f 2 <<< $(grep name ${workshopfolder}/$i/meta.cpp))
+                
+                # Convert modname to lowercase
+                modname=$(echo "${modname}" | tr '[:upper:]' '[:lower:]')
 
-	# Copy key files
-	if ls ${HOME}/serverfiles/@* 1> /dev/null 2>&1; then
-	    printf "\n[ ${green}DayZ${default} ] Copy Key Files from Mods...\n"
-	    # Use a case-insensitive glob pattern for both Keys and keys directories
-	    for keydir in ${HOME}/serverfiles/@*/[Kk]eys/; do
-	        if [ -d "$keydir" ]; then
-	            cp -vu "$keydir"* "${HOME}/serverfiles/keys/" > /dev/null 2>&1
-	        fi
-	    done
-	fi
+                # Rename main mod folder to lowercase if necessary
+                if [ ! -d "${HOME}/serverfiles/@${modname}" ]; then
+                    mv "${HOME}/serverfiles/@$(basename "${workshopfolder}/$i")" "${HOME}/serverfiles/@${modname}" 2>/dev/null
+                fi
+
+                # Create a symlink if it doesn't already exist
+                if [ ! -d "${HOME}/serverfiles/@${modname}" ]; then
+                    ln -s ${workshopfolder}/$i "${HOME}/serverfiles/@${modname}" &> /dev/null
+                fi
+
+                # Check if mod has been updated
+                mod_meta_file="${workshopfolder}/$i/meta.cpp"
+                mod_last_modified=$(date -r "$mod_meta_file" +%s 2>/dev/null || echo 0)
+                prev_timestamp=$(jq -r --arg mod "$i" '.[$mod] // 0' "$timestamp_file")
+
+                if [ "$mod_last_modified" -gt "$prev_timestamp" ]; then
+                    # Send Discord notification if URL is set
+                    if [ -n "$discord_webhook_url" ]; then
+                        curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"The mod '$modname' (ID: $i) has been updated.\"}" "$discord_webhook_url"
+                    else
+                        echo "Discord webhook URL is not set. Skipping notification for mod '$modname'."
+                    fi
+                    
+                    # Update timestamp file
+                    jq --arg mod "$i" --argjson time "$mod_last_modified" '.[$mod] = $time' "$timestamp_file" > "${timestamp_file}.tmp" && mv "${timestamp_file}.tmp" "$timestamp_file"
+                fi
+            fi
+        done
+
+        # Copy key files
+        if ls ${HOME}/serverfiles/@* 1> /dev/null 2>&1; then
+            printf "\n[ ${green}DayZ${default} ] Copy Key Files from Mods...\n"
+            for keydir in ${HOME}/serverfiles/@*/[Kk]eys/; do
+                if [ -d "$keydir" ]; then
+                    cp -vu "$keydir"* "${HOME}/serverfiles/keys/" > /dev/null 2>&1
+                fi
+            done
+        fi
 }
-
 
 fn_backup_dayz(){
     fn_status_dayz
