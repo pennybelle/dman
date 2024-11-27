@@ -7,25 +7,22 @@ Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/day
 You are free to copy or fork the script and edit to your liking.<br/>
 All I ask is that you don't remove the credits at the top of the main script. Thank you.
 
-### Basic Usage
-- Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
-- Then type: `chmod +x dayzserver.sh` ENTER
-- Then type: `./dayzserver.sh` ENTER<br/>
-You will get instructions on how to start stop etc after first run.
-
 ## First RUN
-1. Run the script `./dayzserver.sh`
-2. Wait until it has finished, then follow the instructions.
-3. Edit the `.config.ini` file with your preferences.
-4. Add your Mod ID's to the `.workshop.cfg` file.
+1. Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
+2. Then: `chmod +x dayzserver.sh`
+3. Run the script: `./dayzserver.sh`
+4. Wait until it has finished, then follow the instructions.
+5. Edit the `.config.ini` file with your preferences.
+6. Add your Mod ID's to the `.workshop.cfg` file.
    - Don't worry about adding the mod name. The script will do that later.
    - One ModID per line only.
-5. Edit the `serverfiles/battleye/beserver_x64_active_*.cfg`
+   - Leave one space between the ID and the name `123456 ModName`
+7. Edit the `serverfiles/battleye/beserver_x64_active_*.cfg`
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
-6. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
+8. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
    - Make sure there is a **steamQueryPort** setting. i.e `steamQueryPort = 27016;`
-7. Run the script again and your server will be online within minutes.
+9. Run the script again and your server will be online within minutes.
 
 ## .workshop.cfg 
 **Editing the `.workshop.cfg` file is real easy.**<br/>
