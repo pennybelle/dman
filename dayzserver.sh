@@ -36,7 +36,6 @@ dayz_id=221100
 # IMPORTANT PARAMETERS
 steamlogin=CHANGEME
 config=serverDZ.cfg
-port=2302
 BEpath=\"-BEpath=\${HOME}/serverfiles/battleye/\"
 profiles=\"-profiles=\${HOME}/serverprofile/\"
 # optional - just remove the # to enable
