@@ -36,7 +36,6 @@ You will get instructions on how to start stop etc after first run.
 
 ## Auto Restarts and Updates
 The following cron jobs can be added to your DayZ Server users contab:<br/>
-<br/>
 ```
 @reboot /home/dayz/dayzserver.sh start > /dev/null 2>&1
 */1 * * * * /home/dayz/dayzserver.sh monitor > /dev/null 2>&1
@@ -47,9 +46,7 @@ The following cron jobs can be added to your DayZ Server users contab:<br/>
 - Line 3 makes regular backups of your **storage** and **profile** folders.
 
 You can use a service like CFTools to run server restarts (by remotely shutting it down).<br/>
-CFTools shutdowns the server and `/home/dayz/dayzserver.sh monitor` will restart the server.<br/>
-
-<br>
+CFTools shutdowns the server and `/home/dayz/dayzserver.sh monitor` will restart the server.<br/><br>
 
 **MPORTANT NOTE**<br/> `monitor` will only restart the server if a remote shutdown (RCon) command was used.<br/>
 `dayzserver.sh shutdown` done from the Linux command line will shutdown the server and prevent `monitor` from restarting it.
