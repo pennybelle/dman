@@ -2,6 +2,7 @@
 #############################################
 ### DayZ Standalone linuxserver script
 ### Original script by thelastnoc
+### Customised and extended by haywardgg
 #############################################
 
 ### NO NEED TO EDIT ANYTHING IN THIS FILE ###
