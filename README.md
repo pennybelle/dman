@@ -35,8 +35,9 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 **Editing the `.workshop.cfg` file is real easy.**<br/>
 - Add one workshop ID per line.<br/>
 - The script will automatically check and append mod names each time you run: `./dayzserver.sh workshop`<br/>
-- If a mod has been updated by the developer an optional notification can be sent to your Discord channel. <br/>
+- Optional Mod update notifications can be sent to your Discord channel. <br/>
    - Just add your Discord URL in `.config.ini`
+   - Mod names and timestamps are stored in `mod_timestamps.json` (don't touch this file).
 - You still need to manually add the `@modname(s)` to the `workshop=""` setting in `.config.ini`
    - This is because you might need to put them in a specific order, or remove one for testing, but not have to redownload it again.
 - **.workshop.cfg** tells the script which MODS need to be downloaded. It does NOT add them to `workshop=""`. You do that yourself!
