@@ -43,7 +43,7 @@ profiles=\"-profiles=\${HOME}/serverprofile/\"
 #logs=\"-dologs -adminlog -netlog\"
 
 # Discord Notifications.
-discord_webhook_url=""
+discord_webhook_url=\"\"
 
 # DayZ Mods from Steam Workshop
 # Edit the .workshop.cfg and add one Mod Number per line.
