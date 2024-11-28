@@ -12,7 +12,14 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 - Updates the DayZ Server and Mods at each startup/restart.
 - Backs up your Profile and Storage folders at each startup/restart.
 - Auto Start, Stop and Restarts are done with the help of Crontab.
-- Simple to set up. 
+- Simple to set up.
+
+## Required 
+curl, tar, tmux, jq and wget
+```
+sudo apt update
+sudo apt install -y curl tar tmux jq wget
+```
 
 ## First RUN
 1. Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
