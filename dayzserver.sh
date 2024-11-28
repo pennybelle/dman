@@ -425,15 +425,15 @@ fn_workshop_mods(){
         fi
     done
 
-    # Copy key files
-    if ls ${HOME}/serverfiles/@* 1> /dev/null 2>&1; then
-        printf "\n[ ${green}DayZ${default} ] Copy Key Files from Mods...\n"
-        for keydir in ${HOME}/serverfiles/@*/[Kk]eys/; do
-            if [ -d "$keydir" ]; then
-                cp -vu "$keydir"* "${HOME}/serverfiles/keys/" > /dev/null 2>&1
-            fi
-        done
-    fi
+	# Copy key files
+	if ls ${HOME}/serverfiles/@* 1> /dev/null 2>&1; then
+	    printf "\n[ ${green}DayZ${default} ] Copying Mod Keys to Server Keys folder...\n"
+	    for keydir in ${HOME}/serverfiles/@*/[Kk]eys/ ${HOME}/serverfiles/@*/[Kk]ey/; do
+	        if [ -d "$keydir" ]; then
+	            cp -vu "$keydir"* "${HOME}/serverfiles/keys/" > /dev/null 2>&1
+	        fi
+	    done
+	fi
 }
 
 
