@@ -7,6 +7,13 @@ Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/day
 You are free to copy or fork the script and edit to your liking.<br/>
 All I ask is that you don't remove the credits at the top of the main script. Thank you.
 
+### Main Features
+- Takes care of downloading SteamCMD and DayZ Server.
+- Updates DayZ Server if a new release is available.
+- Updates your Mods (with optional Discord notification).
+- Backs up your Profile and Storage folders.
+- Simple to set up. 
+
 ## First RUN
 1. Download [dayzserver.sh](https://raw.githubusercontent.com/haywardgg/DayZ_Server_Manager/5536718fb3361cf4f3baad9293f61918636e16c7/dayzserver.sh) to the root of your DayZ server home drive.
 2. Then: `chmod +x dayzserver.sh`
