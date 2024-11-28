@@ -1,6 +1,6 @@
 #!/bin/bash
 #############################################
-### DayZ Standalone linuxserver script
+### DayZ Standalone Linux Server script
 ### Original script by thelastnoc
 ### Customised and extended by haywardgg
 #############################################
