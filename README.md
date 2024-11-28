@@ -9,10 +9,9 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 
 ### Main Features
 - Takes care of downloading SteamCMD and DayZ Server.
-- Updates DayZ Server if a new release is available.
-- Updates your Mods (`./dayzserver.sh workshop`).
-- Backs up your Profile and Storage folders. (`./dayzserver.sh backup`)
-- Auto Start, Stop and Restarts with the help of Crontab.
+- Updates the DayZ Server and Mods at each startup/restart.
+- Backs up your Profile and Storage folders at each startup/restart.
+- Auto Start, Stop and Restarts are done with the help of Crontab.
 - Simple to set up. 
 
 ## First RUN
@@ -47,11 +46,12 @@ The following cron jobs can be added to your DayZ Server users contab:<br/>
 ```
 @reboot /home/dayz/dayzserver.sh start > /dev/null 2>&1
 */1 * * * * /home/dayz/dayzserver.sh monitor > /dev/null 2>&1
-*/30 * * * * /home/dayz/dayzserver backup > /dev/null 2>&1
+# */30 * * * * /home/dayz/dayzserver backup > /dev/null 2>&1
 ```
 - Line 1 simply starts the server when the Linux machine is rebooted or turned on.
 - Line 2 checks to see if the server is crashed or has been shutdown remotely, then restarts it.
-- Line 3 makes regular backups of your **storage** and **profile** folders.
+- Line 3 (OPTIONAL) makes regular backups of your **storage** and **profile** folders.
+   - By default the script backs up your folders during server startup and restarts. 
 
 You can use a service like CFTools to run server restarts (they have a free tier).<br/>
 ***CFTools shutdowns the server and*** `/home/dayz/dayzserver.sh monitor` ***will restart the server***.<br/><br>
