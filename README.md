@@ -10,8 +10,9 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 ### Main Features
 - Takes care of downloading SteamCMD and DayZ Server.
 - Updates DayZ Server if a new release is available.
-- Updates your Mods (with optional Discord notification).
-- Backs up your Profile and Storage folders.
+- Updates your Mods (`./dayzserver.sh workshop`).
+- Backs up your Profile and Storage folders. (`./dayzserver.sh backup`)
+- Auto Start, Stop and Restarts with the help of Crontab.
 - Simple to set up. 
 
 ## First RUN
