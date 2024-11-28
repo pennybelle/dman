@@ -56,4 +56,4 @@ The following cron jobs can be added to your DayZ Server users contab:<br/>
 You can use a service like CFTools to run server restarts (they have a free tier).<br/>
 ***CFTools "restart server schedular" shuts down the server and*** `monitor` ***will start the server back up***.<br/><br>
 
-**MPORTANT NOTE**<br/> `monitor` will only try to restart the server if a remote shutdown (RCon) command was used or the server crashed. `dayzserver.sh shutdown` done from the Linux command line will shutdown the server and prevent `monitor` from restarting it. 
+**MPORTANT NOTE**<br/> `monitor` will only try to restart the server if a remote shutdown (RCon) command was used or the server crashed. `shutdown` done from the Linux command line will shutdown the server and prevent `monitor` from restarting it. 
