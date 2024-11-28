@@ -85,12 +85,30 @@ fn_checkroot_dayz(){
 	fi
 }
 
-fn_checktmux(){
-	if [ -n "${TMUX}" ]; then
-		printf "[ ${red}FAIL${default} ] The Script creates a tmux session when starting the server.\n"
-		printf "\tIt is not possible to run a tmux session inside another tmux session\n"
-		exit 1
-	fi
+check_dependencies(){
+    missing_tools=()
+    tools=("tmux" "curl" "jq" "wget")
+
+    for tool in "${tools[@]}"; do
+        if ! command -v "$tool" &>/dev/null; then
+            missing_tools+=("$tool")
+        fi
+    done
+
+    if [ "${#missing_tools[@]}" -ne 0 ]; then
+        echo -e "[ ${red}ERROR${default} ] The following tools are missing and must be installed:"
+        for tool in "${missing_tools[@]}"; do
+            echo "  - $tool"
+        done
+        echo -e "[ ${yellow}INFO${default} ] Install these tools using your package manager. For example:"
+        echo "      sudo apt install ${missing_tools[*]}   # For Debian/Ubuntu"
+        echo "      sudo yum install ${missing_tools[*]}   # For CentOS/RHEL"
+        echo "      sudo dnf install ${missing_tools[*]}   # For Fedora"
+        echo "      sudo pacman -S ${missing_tools[*]}     # For Arch"
+        exit 1
+    else
+        echo -e "[ ${green}OK${default} ] All required tools are installed."
+    fi
 }
 
 fn_checkscreen(){
@@ -520,7 +538,7 @@ fn_opt_usage(){
 
 # start functions
 fn_checkroot_dayz
-fn_checktmux
+check_dependencies
 fn_checkscreen
 
 getopt=$1
