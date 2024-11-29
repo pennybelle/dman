@@ -326,7 +326,8 @@ fn_workshop_mods(){
     
     # Download workshop.cfg if it doesn't exist
     if [ ! -f "$workshop_cfg" ]; then
-        wget -P ${HOME}/ -qN https://raw.githubusercontent.com/thelastnoc/dayz-sa_linuxserver/master/script/.workshop.cfg
+        touch $workshop_cfg
+	chmod 600 ${HOME}/.workshop.cfg
     fi
 
     # Parse and update workshop.cfg with mod names
