@@ -330,37 +330,6 @@ fn_workshop_mods(){
 	chmod 600 ${HOME}/.workshop.cfg
     fi
 
-    # Parse and update workshop.cfg with mod names
-    while IFS= read -r line; do
-        # Extract mod ID and name (if present)
-        mod_id=$(echo "$line" | awk '{print $1}')
-        mod_name=$(echo "$line" | cut -d' ' -f2-)
-
-        # Skip invalid lines
-        if [[ ! "$mod_id" =~ ^[0-9]+$ ]]; then
-            continue
-        fi
-
-        # Get mod name from meta.cpp if not present
-        if [[ -z "$mod_name" || "$mod_name" == "$mod_id" ]]; then
-            mod_meta_file="${workshopfolder}/$mod_id/meta.cpp"
-            if [ -f "$mod_meta_file" ]; then
-                mod_name=$(cut -d '"' -f 2 <<< $(grep name "$mod_meta_file"))
-            else
-                mod_name="Unknown"
-            fi
-        fi
-
-        # Save the updated line
-        updated_workshop_cfg+="${mod_id} ${mod_name}"$'\n'
-    done < "$workshop_cfg"
-
-    # Rewrite workshop.cfg if necessary
-    if [ -n "$updated_workshop_cfg" ]; then
-        echo "$updated_workshop_cfg" > "$workshop_cfg"
-        echo "Updated workshop.cfg with mod names."
-    fi
-
     # Read the updated workshop.cfg into workshopID array
     mapfile -t workshopID < "$workshop_cfg"
 
@@ -426,7 +395,38 @@ fn_workshop_mods(){
         fi
     done
 
-	# Copy key files
+    # Parse and update workshop.cfg with mod names
+    while IFS= read -r line; do
+        # Extract mod ID and name (if present)
+        mod_id=$(echo "$line" | awk '{print $1}')
+        mod_name=$(echo "$line" | cut -d' ' -f2-)
+
+        # Skip invalid lines
+        if [[ ! "$mod_id" =~ ^[0-9]+$ ]]; then
+            continue
+        fi
+
+        # Get mod name from meta.cpp if not present
+        if [[ -z "$mod_name" || "$mod_name" == "$mod_id" ]]; then
+            mod_meta_file="${workshopfolder}/$mod_id/meta.cpp"
+            if [ -f "$mod_meta_file" ]; then
+                mod_name=$(cut -d '"' -f 2 <<< $(grep name "$mod_meta_file"))
+            else
+                mod_name="Unknown"
+            fi
+        fi
+
+	# Save the updated line
+        updated_workshop_cfg+="${mod_id} ${mod_name}"$'\n'
+    done < "$workshop_cfg"
+
+    # Rewrite workshop.cfg if necessary
+    if [ -n "$updated_workshop_cfg" ]; then
+        echo "$updated_workshop_cfg" > "$workshop_cfg"
+        echo "Updated workshop.cfg with mod names."
+    fi
+
+ 	# Copy key files
 	if ls ${HOME}/serverfiles/@* 1> /dev/null 2>&1; then
 	    printf "\n[ ${green}DayZ${default} ] Copying Mod Keys to Server Keys folder...\n"
 	    for keydir in ${HOME}/serverfiles/@*/[Kk]eys/ ${HOME}/serverfiles/@*/[Kk]ey/; do
