@@ -324,7 +324,7 @@ fn_workshop_mods(){
     timestamp_file="${HOME}/mod_timestamps.json"
     workshop_cfg="${HOME}/.workshop.cfg"
     
-    # Download workshop.cfg if it doesn't exist
+    # If .workshop.cfg doesn't exist, create it.
     if [ ! -f "$workshop_cfg" ]; then
         touch $workshop_cfg
 	chmod 600 ${HOME}/.workshop.cfg
