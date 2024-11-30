@@ -34,6 +34,9 @@ dayz_id=221100
 #stable=223350
 #exp_branch=1042420
 
+# Game Port (Not Steam QueryPort. Add/Change that in your serverDZ.cfg file)
+port=2301
+
 # IMPORTANT PARAMETERS
 steamlogin=CHANGEME
 config=serverDZ.cfg
