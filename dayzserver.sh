@@ -127,13 +127,14 @@ fn_status_dayz(){
 }
 
 fn_clear_logs(){
-                # Delete *.RPT and *.log files from the profiles directory
-                profiles_dir="${HOME}/serverprofile" # Update this path if necessary
-                if [ -d "${profiles_dir}" ]; then
-                        find "${profiles_dir}" -type f \( -name "*.RPT" -o -name "*.log" \) -delete
-                        printf "[ ${green}DayZ${default} ] Cleared old .RPT and .log files from profiles directory.\n"
-                fi
+	# Delete *.RPT, *.log, and *.mdmp files from the profiles directory
+	profiles_dir="${HOME}/serverprofile" # Update this path if necessary
+	if [ -d "${profiles_dir}" ]; then
+		find "${profiles_dir}" -type f \( -name "*.RPT" -o -name "*.log" -o -name "*.mdmp" \) -delete
+		printf "[ ${green}DayZ${default} ] Cleared old .RPT, .log, and .mdmp files from profiles directory.\n"
+	fi
 }
+
 
 fn_start_dayz(){
 	fn_status_dayz
