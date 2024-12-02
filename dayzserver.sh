@@ -89,30 +89,40 @@ fn_checkroot_dayz(){
 }
 
 check_dependencies(){
-    missing_tools=()
-    tools=("tmux" "curl" "jq" "wget" "lib32gcc-s1")
-
-    for tool in "${tools[@]}"; do
-        if ! command -v "$tool" &>/dev/null; then
-            missing_tools+=("$tool")
-        fi
-    done
-
-    if [ "${#missing_tools[@]}" -ne 0 ]; then
-        echo -e "[ ${red}ERROR${default} ] The following tools are missing and must be installed:"
-        for tool in "${missing_tools[@]}"; do
-            echo "  - $tool"
-        done
-        echo -e "[ ${yellow}INFO${default} ] Install these tools using your package manager. For example:"
-        echo "      sudo apt install ${missing_tools[*]}   # For Debian/Ubuntu"
-        echo "      sudo yum install ${missing_tools[*]}   # For CentOS/RHEL"
-        echo "      sudo dnf install ${missing_tools[*]}   # For Fedora"
-        echo "      sudo pacman -S ${missing_tools[*]}     # For Arch"
-        exit 1
-    else
-        echo -e "[ ${green}OK${default} ] All required tools are installed."
-    fi
+	    missing_tools=()
+	    tools=("tmux" "curl" "jq" "wget")
+	    libraries=("lib32gcc-s1")
+	
+	    # Check executables
+	    for tool in "${tools[@]}"; do
+	        if ! command -v "$tool" &>/dev/null; then
+	            missing_tools+=("$tool")
+	        fi
+	    done
+	
+	    # Check libraries
+	    for lib in "${libraries[@]}"; do
+	        if ! dpkg -l | grep -q "$lib"; then
+	            missing_tools+=("$lib")
+	        fi
+	    done
+	
+	    if [ "${#missing_tools[@]}" -ne 0 ]; then
+	        echo -e "[ ${red}ERROR${default} ] The following dependencie(s) are missing and must be installed:"
+	        for tool in "${missing_tools[@]}"; do
+	            echo "  - $tool"
+	        done
+	        echo -e "[ ${yellow}INFO${default} ] Install these dependencie(s) using your package manager. For example:"
+	        echo "      sudo apt install ${missing_tools[*]}   # For Debian/Ubuntu"
+	        echo "      sudo yum install ${missing_tools[*]}   # For CentOS/RHEL"
+	        echo "      sudo dnf install ${missing_tools[*]}   # For Fedora"
+	        echo "      sudo pacman -S ${missing_tools[*]}     # For Arch"
+	        exit 1
+	    else
+	        echo -e "[ ${green}OK${default} ] All required tools are installed."
+	    fi
 }
+
 
 fn_checkscreen(){
 	if [ -n "${STY}" ]; then
