@@ -90,7 +90,7 @@ fn_checkroot_dayz(){
 
 check_dependencies(){
     missing_tools=()
-    tools=("tmux" "curl" "jq" "wget")
+    tools=("tmux" "curl" "jq" "wget" "lib32gcc-s1")
 
     for tool in "${tools[@]}"; do
         if ! command -v "$tool" &>/dev/null; then
