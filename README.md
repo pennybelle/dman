@@ -11,7 +11,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 ### Main Features
 - Takes care of downloading SteamCMD and DayZ Server.
 - Updates the DayZ Server and Mods at each startup/restart.
-- Backs up your Profile and Storage folders at each startup/restart.
+- Backs up your Profile and Mission folders at each startup/restart.
 - Auto Start, Stop and Restarts are done with the help of Crontab.
 - Simple to set up.
 
