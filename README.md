@@ -24,7 +24,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
    - One Mod ID per line. 
    - Don't worry about adding the mod name. The script will do that later.
    - Leave one space between the ID and the name `123456 ModName`
-7. Edit the `serverfiles/battleye/beserver_x64_active_*.cfg`
+7. Edit the `serverfiles/battleye/beserver_x64*.cfg`
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
 8. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
