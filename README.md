@@ -27,6 +27,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 7. Edit the `serverfiles/battleye/beserver_x64*.cfg`
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
+   - Defaults are usualy: Rcon 2305 and Gameport 2302.
 8. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
    - Make sure there is a **steamQueryPort** setting. i.e `steamQueryPort = 27016;`
 9. Run the script again and your server will be online within minutes.
