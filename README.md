@@ -3,7 +3,7 @@ Custom script for managing your DayZ Server on Linux <br/>
 Currently being used without issue on `UNIT487` DayZ Server.
 
 ### WARNING
-Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/dayzserver.sh) at your own risk. I've modified to suit my specific needs. <br/>
+Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/dayzserver.sh) at your own risk.<br/>
 You are free to copy or fork the script and edit to your liking.<br/>
 All I ask is that you don't remove the credits at the top of the main script. Thank you.
 
