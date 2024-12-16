@@ -40,6 +40,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
    - Mod names and timestamps are stored in `mod_timestamps.json` (don't touch this file).
 - You still need to manually add the **@modname;@modnametwo** to the `workshop=""` setting in `.config.ini`
    - I've made this a manual process because certain mods need to be loaded in a specific order.
+   - Please remember to use lowercase. The script will convert all mod folder names to lowercase for you.
 - **.workshop.cfg** tells the script which MODS need to be downloaded and checked for updates.
 
 ## Auto Restarts and Updates
