@@ -20,7 +20,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 3. Run the script: `./dayzserver.sh`
 4. Wait until it has finished, then follow the instructions.
 5. Edit the **.config.ini** file with your preferences.
-   - Main things to change are **steamlogin** and **port** for now.
+   - Main things to change here are **steamlogin** and **port** for now.
    - This is also where you add your @modNames to the launch paramaters. 
 7. Add your Mod ID's to the **.workshop.cfg** file.
    - One Mod ID per line. 
