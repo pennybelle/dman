@@ -56,6 +56,6 @@ The following cron jobs can be added to your DayZ Server users contab:<br/>
 
 For server restarts, I recommend using the `messages.xml` file located in your missions DB folder.<br/>
 You can also use a service like CFTools to run server restarts (they have a free tier).<br/>
-***Your preferred "restart server schedular" shuts down the server and*** `monitor` cron job ***will start the server back up***.<br/><br/>
+**Your preferred "restart server schedular" shuts down the server and** `monitor` **cron job will start the server back up**.<br/><br/>
 
 **IMPORTANT NOTE**<br/> `monitor` will only try to restart the server if a **RCON** or **messages.xml** shutdown command was used or the server crashed. `shutdown` done from the Linux command line will shutdown the server and prevent `monitor` from restarting it. 
