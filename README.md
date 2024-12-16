@@ -1,7 +1,7 @@
 ## DayZ Server Manager for Linux
 Custom script for managing your DayZ Server on Linux <br/>
 Currently being used without issue on `UNIT487` DayZ Server.<br/><br/>
-**Questions:** Join my [Discord](https://pcgamers.win/discord)<br/>
+**Questions?** Join my [Discord](https://pcgamers.win/discord)<br/>
 
 ### WARNING
 Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/dayzserver.sh) at your own risk.<br/>
