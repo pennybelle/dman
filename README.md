@@ -28,6 +28,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
    - Defaults are usualy: Rcon 2305 and Gameport 2302.
+   - Game port is changed in the **.config.ini**.
 8. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
    - Make sure there is a **steamQueryPort** setting. i.e `steamQueryPort = 27016;`
 9. Run the script again and your server will be online within minutes.
@@ -39,7 +40,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 - Optional Mod update notifications can be sent to your Discord channel. <br/>
    - Just add your Discord URL in `.config.ini`
    - Mod names and timestamps are stored in `mod_timestamps.json` (don't touch this file).
-- You still need to manually add the **@modname;@modnametwo** to the `workshop=""` setting in `.config.ini`
+- You still need to manually add the **@modname;@modnametwo** to the `workshop=""` setting in **.config.ini**
    - I've made this a manual process because certain mods need to be loaded in a specific order.
    - Please remember to use lowercase. The script will convert all mod folder names to lowercase for you.
 - **.workshop.cfg** tells the script which MODS need to be downloaded and checked for updates.
