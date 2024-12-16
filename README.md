@@ -23,7 +23,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 6. Add your Mod ID's to the `.workshop.cfg` file.
    - One Mod ID per line. 
    - Don't worry about adding the mod name. The script will do that later.
-   - Leave one space between the ID and the name `123456 ModName`
+   - If you must though. Leave one space between the ID and the name `123456 ModName`
 7. Edit the `serverfiles/battleye/beserver_x64*.cfg`
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
