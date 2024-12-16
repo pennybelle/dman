@@ -20,18 +20,20 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 3. Run the script: `./dayzserver.sh`
 4. Wait until it has finished, then follow the instructions.
 5. Edit the **.config.ini** file with your preferences.
-6. Add your Mod ID's to the **.workshop.cfg** file.
+   - Main things to change are **steamlogin** and **port** for now.
+   - This is also where you add your @modNames to the launch paramaters. 
+7. Add your Mod ID's to the **.workshop.cfg** file.
    - One Mod ID per line. 
    - Don't worry about adding the mod name. The script will do that later.
    - If you must though. Leave one space between the ID and the name `123456 ModName`
-7. Edit the `serverfiles/battleye/beserver_x64*.cfg`
+8. Edit the `serverfiles/battleye/beserver_x64*.cfg`
    - Change the RCon password and port number, or leave as default.
    - Make sure the RCon and the Game Server ports aren't the same.
    - Defaults are usualy: Rcon 2305 and Gameport 2302.
    - Game port is changed in the **.config.ini**.
-8. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
+9. In your `serverfiles/serverDZ.cfg` file change your hostname and other settings.
    - Make sure there is a **steamQueryPort** setting. i.e `steamQueryPort = 27016;`
-9. Run the script again and your server will be online within minutes.
+10. Run the script again and your server will be online within minutes.
 
 ## .workshop.cfg 
 **Editing the `.workshop.cfg` file is real easy.**<br/>
