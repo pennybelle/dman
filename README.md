@@ -1,4 +1,4 @@
-## DayZ Server Manager for Linux
+## DayZ Server Manager for Linux (an alternative to the Linux version of Omega Manager)
 Custom script for managing your DayZ Server on Linux <br/>
 Currently being used without issue on `UNIT487` DayZ Server.<br/><br/>
 **Questions?** Join my [Discord](https://pcgamers.win/discord)<br/>
