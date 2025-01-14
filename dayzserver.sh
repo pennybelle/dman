@@ -6,7 +6,7 @@
 #############################################
 
 ### NO NEED TO EDIT ANYTHING IN THIS FILE ###
-### Changes should be made in .config.ini ###
+### Changes should be made in config.ini ###
 
 if [ "${ansi}" != "off" ]; then
         # echo colors
@@ -24,7 +24,7 @@ if [ "${ansi}" != "off" ]; then
 fi
 
 # Define the config file path
-CONFIG_FILE=".config.ini"
+CONFIG_FILE="config.ini"
 
 # Default content of the config.ini file
 DEFAULT_CONFIG="
@@ -49,7 +49,7 @@ profiles=\"-profiles=\${HOME}/serverprofile/\"
 discord_webhook_url=\"\"
 
 # DayZ Mods from Steam Workshop
-# Edit the .workshop.cfg and add one Mod Number per line.
+# Edit the workshop.cfg and add one Mod Number per line.
 # To enable mods, remove the # below and list the Mods like this: \"@mod1;@mod2;@spaces work\". Lowercase only.
 #workshop=\"\"
 # To enable serverside mods, remove the # below and list the Mods like this: \"@servermod1;@server mod2\". Lowercase only.
@@ -171,8 +171,8 @@ fn_stop_dayz(){
 	fn_status_dayz
 	if [ "${dayzstatus}" == "1" ]; then
 		printf "[ ${magenta}...${default} ] Stopping Server graceful."
-		# waits up to 60 seconds giving the server time to shutdown gracefuly
-		for seconds in {1..60}; do
+		# waits up to 90 seconds giving the server time to shutdown gracefuly
+		for seconds in {1..90}; do
 			fn_status_dayz
 			if [ "${dayzstatus}" == "0" ]; then
 				printf "\r[ ${green}OK${default} ] Stopping Server graceful.\n"
@@ -336,12 +336,12 @@ fn_workshop_mods(){
     workshopfolder="${HOME}/serverfiles/steamapps/workshop/content/221100"
     workshoplist=""
     timestamp_file="${HOME}/mod_timestamps.json"
-    workshop_cfg="${HOME}/.workshop.cfg"
+    workshop_cfg="${HOME}/workshop.cfg"
     
     # If .workshop.cfg doesn't exist, create it.
     if [ ! -f "$workshop_cfg" ]; then
         touch $workshop_cfg
-	chmod 600 ${HOME}/.workshop.cfg
+	chmod 600 ${HOME}/workshop.cfg
     fi
 
     # Read the updated workshop.cfg into workshopID array
