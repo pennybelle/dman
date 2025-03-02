@@ -1,4 +1,4 @@
-# I'm no longer updating this script.
+# I'm no longer working on or supporting this script.
 
 ## DayZ Server Manager for Linux
 ### An alternative to the Linux version of Omega Manager
