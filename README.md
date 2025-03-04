@@ -1,4 +1,5 @@
-# I'm no longer working on or supporting this script.
+# This is not my original work.
+This repo was forked from [haywardgg](https://github.com/search?q=dayz%20server%20manager).
 
 ## DayZ Server Manager for Linux
 ### An alternative to the Linux version of Omega Manager
