@@ -8,6 +8,8 @@
 ### NO NEED TO EDIT ANYTHING IN THIS FILE ###
 ### Changes should be made in config.ini ###
 
+set -euxo pipefail
+
 if [ "${ansi}" != "off" ]; then
         # echo colors
         default="\e[0m"
