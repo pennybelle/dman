@@ -61,7 +61,7 @@ discord_webhook_url=\"\"
 dayzparameter=\" -config=\${config} -port=\${port} -freezecheck \${BEpath} \${profiles} \${logs}\"
 "
 
-SERVER_ROOT="${HOME}/pennybelle"
+SERVER_ROOT="${HOME}/servers/pennybelle"
 
 # Check if the config.ini file exists
 if [ ! -f "$CONFIG_FILE" ]; then
