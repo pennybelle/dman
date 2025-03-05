@@ -121,7 +121,6 @@ class SteamCMD():
         if path.exists(self.steamcmd) is not True:
             # os.makedirs(self.steamcmd_path) # no dummy you need to curl the steamcmd source files
             command(f'cd {self.dman_path} && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -')
-            pass # TODO curl steamcmd source files
 
 
     def create_new_server(self, server):
