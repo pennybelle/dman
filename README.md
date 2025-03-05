@@ -1,11 +1,19 @@
 # This is not my original work.
+
 This repo was forked from [haywardgg](https://github.com/search?q=dayz%20server%20manager).
 
 ## DayZ Server Manager for Linux
+
 ### An alternative to the Linux version of Omega Manager
+
 Custom script for managing your DayZ Server on Linux <br/>
 
-### WARNING
+### INFO
+
+I am currently working on rewriting this script to make it an entire
+manager program that can be scaled up to manage multiple server instances.
+
+<!-- ### WARNING
 Use this [script](https://github.com/haywardgg/DayZ_Server_Manager/blob/main/dayzserver.sh) at your own risk.<br/>
 You are free to copy or fork the script and edit to your liking.<br/>
 All I ask is that you don't remove the credits at the top of the main script. Thank you.
@@ -24,9 +32,9 @@ All I ask is that you don't remove the credits at the top of the main script. Th
 4. Wait until it has finished, then follow the instructions.
 5. Edit the **config.ini** file with your preferences.
    - Main things to change here are **steamlogin** and **port** for now.
-   - This is also where you add your @modNames to the launch paramaters. 
+   - This is also where you add your @modNames to the launch paramaters.
 7. Add your Mod ID's to the **workshop.cfg** file.
-   - One Mod ID per line. 
+   - One Mod ID per line.
    - Don't worry about adding the mod name. The script will do that later.
    - If you must though. Leave one space between the ID and the name `123456 ModName`
 8. Edit the `serverfiles/battleye/beserver_x64*.cfg`
@@ -38,7 +46,7 @@ All I ask is that you don't remove the credits at the top of the main script. Th
    - Make sure there is a **steamQueryPort** setting. i.e `steamQueryPort = 27016;`
 10. Run the script again and your server will be online within minutes.
 
-## workshop.cfg 
+## workshop.cfg
 **Editing the `workshop.cfg` file is real easy.**<br/>
 - Add one workshop ID per line.<br/>
 - The script will automatically check and append mod names each time you run: `./dayzserver.sh workshop`<br/>
@@ -60,10 +68,10 @@ The following cron jobs can be added to your DayZ Server users contab:<br/>
 - Line 1 simply starts the server when the Linux machine is rebooted or turned on.
 - Line 2 checks to see if the server is crashed or has been shutdown remotely, then restarts it.
 - Line 3 (OPTIONAL) makes regular backups of your **storage** and **profile** folders.
-   - By default the script backs up your folders during server startup/restart. 
+   - By default the script backs up your folders during server startup/restart.
 
 For server restarts, I recommend using the `messages.xml` file located in your missions DB folder.<br/>
 You can also use a service like CFTools to run server restarts (they have a free tier).<br/>
 **Your preferred "restart server schedular" shuts down the server and** `monitor` **cron job will start the server back up**.<br/><br/>
 
-**IMPORTANT NOTE**<br/> `monitor` will only try to restart the server if a **RCON** or **messages.xml** shutdown command was used or the server crashed. Typing `./dayzserver stop` will shutdown the server and prevent `monitor` from restarting it. 
+**IMPORTANT NOTE**<br/> `monitor` will only try to restart the server if a **RCON** or **messages.xml** shutdown command was used or the server crashed. Typing `./dayzserver stop` will shutdown the server and prevent `monitor` from restarting it.  -->
