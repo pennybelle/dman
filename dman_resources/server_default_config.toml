@@ -1,0 +1,9 @@
+############
+#  Server  #
+############
+[server.info]
+name = 'SERVER_NAME'
+port = 2302
+discord_webhook = ''
+client_mods = ''
+server_mods = ''
