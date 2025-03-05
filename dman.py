@@ -131,10 +131,10 @@ class SteamCMD():
 
 class Manager(SteamCMD, Server):
     def __init__(self):
-        self.resources_path = join("~", "dman", "dman_resources")
+        self.resources_path = join("~", "dman", "resources")
         self.servers = next(os.walk(self.server_list_path))
-        print(f"DEBUG - Servers: {self.servers}")
         # self.servers = [x[0] for x in os.walk(self.server_list_path)]
+        print(f"DEBUG - Servers: {self.servers}")
 
 
     def default_server_config(self):
@@ -164,7 +164,7 @@ class Manager(SteamCMD, Server):
         
         os.makedirs(self.dman_path)
         with open(self.dman_config, "w") as f:
-            f.write()
+            f.write(self.default_dman_config())
 
 
     def start_server(self, server_name):
@@ -182,13 +182,9 @@ class Manager(SteamCMD, Server):
 
 def main():
     dman = Manager
-    server_list = dman.servers
-
     dman.check_dman_config()
 
-    # for server in servers:
-    #     process = command("./DayZServer -config=serverDZ.cfg -port=2301 -BEpath=battleye -profiles=profiles -dologs -adminlog -netlog -freezecheck")
-    #     pass
+    server_list = dman.servers
 
     if server_list:
         print("Servers:")
@@ -197,12 +193,14 @@ def main():
 
     else:
         print(f"No servers in {dman.server_list_path}")
+        # TODO allow deploy new server instance with default values
     
     print(
         """Options:"""
         """\n\tu - Start server (Up)"""
         """\n\td - Stop server (Down)"""
     )
+
     while True:
         k = cv2.waitKey(1) & 0xFF
             # press 'q' to exit
