@@ -37,6 +37,7 @@ def command(input):
 class Config:
     def __init__(self, config_path):
         try:
+            # pull server specific details from config file
             server_configs = toml.load(config_path)
 
             self.server_info = server_configs["server"]
@@ -45,6 +46,7 @@ class Config:
             self.webhook = self.server_info["discord_webhook"]
             self.client_mods = self.server_info["client_mods"]
             self.server_mods = self.server_info["server_mods"]
+            self.logs = self.server_info["logs"]
 
         except Exception as e:
             print(f"DEBUG - Error: {e}")
@@ -58,17 +60,20 @@ class Config:
 
 
 class Server(Config):
-    def __init__(self, logs=False):
+    def __init__(self):
+        # paths used in launch script (organized for my own convenience)
         self.config_file_name = "dman.toml"
         self.server_list_path = join("~", "dman", "servers")
         self.server_root_path = join(self.server_list_path, self.name)
         self.config_file_path = join(self.server_root_path, self.config_file_name)
+
+        # args for launch script
         self.be_path = f'-BEpath={self.server_root_path}/battleye/'
         self.profiles_path = f'-profiles={self.server_root_path}/profiles/'
-        self.logs = logs
 
-        if logs:
-            self.logs = '-dologs -adminlog -netlog'
+        # logs are off by default
+        if self.logs:
+            self.logs = "-dologs -adminlog -netlog"
         
         self.settings = Config(self.config_file_path)
 
