@@ -1,9 +1,9 @@
 # Inspired by haywardgg's DayZ_Server_Manager
 # https://github.com/haywardgg/DayZ_Server_Manager
 
-import os, toml, cv2
+import os, toml
 
-from os import path, join
+from os import path
 from subprocess import Popen, PIPE
 
 default = r"\e[0m]"
@@ -37,7 +37,7 @@ class Dman_Config:
     def __init__(self):
         try:
             # pull server specific details from config file
-            server_configs = toml.load(join(".", "dman.toml"))
+            server_configs = toml.load(path.join(".", "dman.toml"))
 
             self.dman_info = server_configs["dman"]
             self.name = self.dman_info["config_name"]
@@ -57,7 +57,7 @@ class Dman_Config:
 
 
 
-class Server_Config():
+class Server_Config:
     def __init__(self, config_path):
         try:
             # pull server specific details from config file
@@ -87,8 +87,8 @@ class Server(Server_Config, Dman_Config):
     def __init__(self, name, logs=False):
         # paths used in launch script (organized for my own convenience)
         self.config_file_name = Dman_Config.name # default "dman.toml"
-        self.server_root_path = join(Dman_Config.servers_path, self.name)
-        self.config_file_path = join(self.server_root_path, self.config_file_name)
+        self.server_root_path = path.join(Dman_Config.servers_path, self.name)
+        self.config_file_path = path.join(self.server_root_path, self.config_file_name)
 
         # args for launch script, hardcoded since these directories shouldnt change
         self.be_path = f'-BEpath={self.server_root_path}/battleye/'
@@ -109,7 +109,7 @@ class Server(Server_Config, Dman_Config):
 
 
     def default_config(self):
-        default_config_path = join(Dman_Config.dman_path, "resources", "server_default_config.toml")
+        default_config_path = path.join(Dman_Config.dman_path, "resources", "server_default_config.toml")
         try:
             with open(default_config_path, "r") as default_config:
                 return default_config.read()
@@ -132,7 +132,7 @@ class Server(Server_Config, Dman_Config):
 
 
     # def default_server_config(self):
-    #     default_config_path = join(Dman_Config.dman_path, "resources", "server_default_config.toml")
+    #     default_config_path = path.join(Dman_Config.dman_path, "resources", "server_default_config.toml")
     #     try:
     #         with open(default_config_path, "r") as default_config:
     #             return default_config
@@ -161,8 +161,8 @@ class Server(Server_Config, Dman_Config):
 
     def start(self, server_name):
         server = Server
-        server_script = join(self.servers_list, server_name)
-        config = f'-config={join(self.servers_list, "serverDZ.cfg")}'
+        server_script = path.join(self.servers_list, server_name)
+        config = f'-config={path.join(self.servers_list, "serverDZ.cfg")}'
 
         process = command(f'{server_script} {config} {server.port} {server.be_path} {server.profiles_path} {server.logs} -freezecheck')
 
@@ -172,7 +172,7 @@ class Server(Server_Config, Dman_Config):
 
 
 
-class SteamCMD(Dman_Config):
+class SteamCMD(Server):
     def __init__(self):
         self.appid = 223350
         self.dayz_id = 221100
@@ -180,7 +180,7 @@ class SteamCMD(Dman_Config):
         self.steam_login = Dman_Config.steam_username
         self.dman_path = Dman_Config.dman_path
         self.steamcmd_path = Dman_Config.steamcmd_path
-        self.dman_config = join(self.dman_path, Dman_Config.name)
+        self.dman_config = path.join(self.dman_path, Dman_Config.name)
         self.server_list_path = Dman_Config.servers_path
 
 
@@ -192,17 +192,17 @@ class SteamCMD(Dman_Config):
 
 
     def download_server(self, server):
-        command(f'{join(self.steamcmd_path, "steamcmd.sh")} +force_install_dir {join(self.server_list_path, server)} +login {self.steam_login} +app_update 223350 +quit')
+        command(f'{path.join(self.steamcmd_path, "steamcmd.sh")} +force_install_dir {path.join(self.server_list_path, server)} +login {self.steam_login} +app_update 223350 +quit')
 
 
 
-class Manager(Dman_Config, SteamCMD, Server):
+class Manager(SteamCMD):
     def __init__(self):
         self.config_file_name = Dman_Config.name # default "dman.toml"
         self.dman_root_path = Dman_Config.dman_path
-        self.config_file_path = join(self.dman_root_path, self.config_file_name)
+        self.config_file_path = path.join(self.dman_root_path, self.config_file_name)
 
-        self.resources_path = join(Dman_Config.dman_path, "resources")
+        self.resources_path = path.join(Dman_Config.dman_path, "resources")
         self.servers_list = next(os.walk(SteamCMD.server_list_path))
         self.servers_dict = {id:server for (id, server) in enumerate(self.servers_list)}
         # self.servers = [x[0] for x in os.walk(self.server_list_path)]
@@ -210,7 +210,7 @@ class Manager(Dman_Config, SteamCMD, Server):
 
 
     def default_config(self):
-        default_config_path = join(Dman_Config.dman_path, "resources", "dman_default_config.toml")
+        default_config_path = path.join(Dman_Config.dman_path, "resources", "dman_default_config.toml")
         try:
             with open(default_config_path, "r") as f:
                 return f.read()
@@ -235,9 +235,10 @@ class Manager(Dman_Config, SteamCMD, Server):
 def main():
     # init manager to variable
     dman = Manager
+    steamcmd = SteamCMD
 
     # creat config if it doesnt exist, return contents if it does
-    configs = dman.dman_config()
+    configs = steamcmd.dman_config()
 
 
     if not dman.servers_dict:
