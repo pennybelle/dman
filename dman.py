@@ -83,8 +83,9 @@ class Server_Config:
 
 
 
-class Server(Server_Config, Dman_Config):
-    def __init__(self, name, logs=False):
+class Server(Server_Config):
+    def __init__(self, config_path, name, logs=False):
+        super().__init__(self, config_path, name)
         # paths used in launch script (organized for my own convenience)
         self.config_file_name = Dman_Config.name # default "dman.toml"
         self.server_root_path = path.join(Dman_Config.servers_path, self.name)
@@ -172,7 +173,7 @@ class Server(Server_Config, Dman_Config):
 
 
 
-class SteamCMD(Server):
+class SteamCMD(Dman_Config):
     def __init__(self):
         self.appid = 223350
         self.dayz_id = 221100
@@ -196,8 +197,9 @@ class SteamCMD(Server):
 
 
 
-class Manager(SteamCMD):
-    def __init__(self):
+class Manager(SteamCMD, Dman_Config):
+    def __init__(self, name, dman_path, server_list_path):
+        super().__init__(self, name, dman_path, server_list_path)
         self.config_file_name = Dman_Config.name # default "dman.toml"
         self.dman_root_path = Dman_Config.dman_path
         self.config_file_path = path.join(self.dman_root_path, self.config_file_name)
@@ -232,13 +234,14 @@ class Manager(SteamCMD):
             return f.read()
 
 
+
 def main():
     # init manager to variable
-    dman = Manager
-    steamcmd = SteamCMD
+    dman = Manager(SteamCMD, Dman_Config)
+    # steamcmd = SteamCMD
 
     # creat config if it doesnt exist, return contents if it does
-    configs = steamcmd.dman_config()
+    # configs = steamcmd.dman_config()
 
 
     if not dman.servers_dict:
