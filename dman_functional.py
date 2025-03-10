@@ -20,6 +20,7 @@
 import os
 import subprocess
 import asyncio
+# import asyncio
 # import shlex
 # from os import path, makedirs
 from subprocess import Popen, PIPE
@@ -32,6 +33,7 @@ from subprocess import Popen, PIPE
 
 steamcmd = os.path.join(os.getcwd(), "app", "steamcmd")
 servers = os.path.join(os.getcwd(), "app", "servers")
+username = None
 
 
 # used for downloading steamcmd
@@ -69,7 +71,8 @@ def check_server(server_name):
     if os.path.isdir(instance_path) is not True:
         print("no server by that name, creating...")
         # os.makedirs(instance_path)
-        username = input("enter your steam username: ")
+        if username is None:
+            username = input("enter your steam username: ")
         subprocess.run([f'{os.path.join(steamcmd, "steamcmd.sh")}', f"+force_install_dir {instance_path}", f"+login {username}", "+app_update 223350", "+quit"], shell=False)
         print(f"server instance {server_name} has been created")
         # print(server)
@@ -80,7 +83,7 @@ def check_server(server_name):
 def run_server(server_name):
     instance_path = os.path.join(servers, server_name)
     subprocess.run([
-        os.path.join(instance_path, "./DayZServer"), 
+        os.path.join(instance_path, "DayZServer"), 
         f'-config={os.path.join(instance_path, "serverDZ.cfg")}', 
         "-port=2301", 
         f'-BEpath={os.path.join(instance_path, "battleye")}', 
@@ -96,13 +99,72 @@ def run_server(server_name):
     # command(f"cd {instance_path} && ./DayZServer -config={os.path.join(instance_path, "serverDZ.cfg")} -port=2301 -BEpath={os.path.join(instance_path, "battleye")} -profiles={os.path.join(instance_path, "profiles")} -dologs -adminlog -netlog -freezecheck")
 
 
-def main():
+async def start_server(instance_path, port):
+    args = [
+        os.path.join(instance_path, "DayZServer"),
+        f'-config={os.path.join(instance_path, "serverDZ.cfg")}',
+        f'-port={port}',
+        f'-BEpath={os.path.join(instance_path, "battleye")}',
+        f'-profiles={os.path.join(instance_path, "profiles")}',
+        "-dologs",
+        "-adminlog",
+        "-netlog",
+        "-freezecheck"
+    ]
+
+    process = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=instance_path,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+
+    # Store PID and process object
+    server_info = {
+        'pid': process.pid,
+        'process': process,
+        'port': port
+    }
+
+    # Start monitoring task
+    asyncio.create_task(monitor_process(process))
+
+    return server_info
+
+
+async def monitor_process(process):
+    try:
+        stdout, stderr = await process.communicate()
+        if stdout:
+            print(f'Server output: {stdout.decode()}')
+        if stderr:
+            print(f'Server error: {stderr.decode()}')
+    except Exception as e:
+        print(f'Monitoring failed: {e}')
+    finally:
+        if process.returncode is None:
+            process.terminate()
+            await process.wait()
+
+
+async def main():
     install_steamcmd()
 
-    check_server("pennybelle")
-    print(os.getcwd())
-    run_server("pennybelle")
+    # print(os.getcwd())
+    # run_server("pennybelle")
+
+    instances = ["pennybelle1", "pennybelle2"]
+    for instance in instances:
+        check_server(instance)
+
+    tasks = []
+    for id, instance in enumerate(instances):
+        instance_path = os.path.join(servers, instance)
+        port = 2303 + id
+        tasks.append(start_server(instance_path, port))
+
+    server_instances = await asyncio.gather(*tasks)
+    await asyncio.sleep(300)
 
 
-
-main()
+asyncio.run(main())
