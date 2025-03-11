@@ -7,4 +7,4 @@ port = 2302
 discord_webhook = ''
 client_mods = ''
 server_mods = ''
-logs=False
+logs=''

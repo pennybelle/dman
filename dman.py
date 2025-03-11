@@ -1,25 +1,41 @@
-# Inspired by haywardgg's DayZ_Server_Manager
-# https://github.com/haywardgg/DayZ_Server_Manager
+# fn_install_dayz(){
+# 	if [ ! -f "${SERVER_ROOT}/steamcmd/steamcmd.sh" ]; then
+# 		mkdir ${SERVER_ROOT}/steamcmd &> /dev/null
+# 		curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxf - -C steamcmd
+# 		printf "[ ${yellow}STEAM${default} ] Steamcmd installed\n"
+# 	else
+# 		printf "[ ${lightblue}STEAM${default} ] Steamcmd already installed\n"
+# 	fi
+# 	if [ ! -f "${SERVER_ROOT}/serverfiles/DayZServer" ]; then
+# 		mkdir ${SERVER_ROOT}/serverfiles &> /dev/null
+# 		mkdir ${SERVER_ROOT}/serverprofile &> /dev/null
+# 		printf "[ ${yellow}DayZ${default} ] Downloading DayZ Server-Files!\n"
+# 		fn_runvalidate_dayz
+# 	else
+# 		printf "[ ${lightblue}DayZ${default} ] The Server is already installed.\n"
+# 		fn_opt_usage
+# 	fi
+# }
 
-import os, toml
+import os
+import subprocess
+import asyncio
+import toml
 
-from os import path
+# import asyncio
+# import shlex
+# from os import path, makedirs
 from subprocess import Popen, PIPE
+from shutil import copyfile
 
-default = r"\e[0m]"
-red = r"\e[31m"
-green = r"\e[32m"
-yellow = r"\e[33m"
-lightyellow = r"\e[93m"
-blue = r"\e[34m"
-lightblue = r"\e[94m"
-magenta = r"\e[35m"
-cyan = r"\e[36m"
-# carriage return & erase to end of line
-creeol = r"\r\033[K"
+# import pwd
+# username = pwd.getpwuid(os.getuid())[0]
+# dman_path = os.path.join("/", "home", username, "Documents", "GitHub", "dman")
+# steamcmd = os.path.join(dman_path, "app", "steamcmd")
+# servers = os.path.join(dman_path, "app", "servers")
 
 
-# run any command (pipe or not)
+# used for downloading steamcmd
 def command(input):
     output = Popen(
         input,
@@ -27,262 +43,206 @@ def command(input):
         stdout=PIPE,
         stderr=PIPE,
     )
-    output = str(output.communicate()[0])
-    output = output[2 : len(output) - 3]
+    output = output.communicate()
 
     return output
 
 
-class Dman_Config:
-    def __init__(self):
-        try:
-            # pull server specific details from config file
-            server_configs = toml.load(path.join(".", "dman.toml"))
-
-            self.dman_info = server_configs["dman"]
-            self.name = self.dman_info["config_name"]
-            self.dman_path = self.dman_info["dman_location"]
-            self.steamcmd_path = self.dman_info["steamcmd_path"]
-
-            self.user_info = server_configs["user"]
-            self.steam_username = self.dman_info["steam_username"]
-            self.servers_path = self.dman_info["servers_path"]
-
-        except Exception as e:
-            print(f"DEBUG - Error: {e}")
-            self.name = None
-            self.dman_path = None
-            self.steam_username = None
-            self.servers_path = None
+# def split_args(command):
+#     return shlex.split(command)
 
 
-
-class Server_Config:
-    def __init__(self, config_path):
-        try:
-            # pull server specific details from config file
-            server_configs = toml.load(config_path)
-
-            self.server_info = server_configs["server"]["info"]
-            self.name = self.server_info["name"]
-            self.port = self.server_info["port"]
-            self.webhook = self.server_info["discord_webhook"]
-            self.client_mods = self.server_info["client_mods"]
-            self.server_mods = self.server_info["server_mods"]
-            self.logs = self.server_info["logs"]
-
-        except Exception as e:
-            print(f"DEBUG - Error: {e}")
-            self.server_info = None
-            self.name = None
-            self.port = None
-            self.webhook = None
-            self.client_mods = None
-            self.server_mods = None
-            self.logs = None
+def install_steamcmd(steamcmd):
+    print("checking for steamcmd...", end="", flush=True)
+    if os.path.isdir(steamcmd) is not True:
+        print("not found, installing...", end="", flush=True)
+        os.makedirs(steamcmd)
+        command(
+            f'cd {steamcmd} && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -'
+        )
+    print("done")
 
 
+def check_server(username, app_path, server_name):
+    print(f"initializing instance {server_name}...", end="", flush=True)
+    instance_path = os.path.join(app_path, "servers", server_name)
 
-class Server(Server_Config):
-    def __init__(self, config_path, name, logs=False):
-        super().__init__(self, config_path, name)
-        # paths used in launch script (organized for my own convenience)
-        self.config_file_name = Dman_Config.name # default "dman.toml"
-        self.server_root_path = path.join(Dman_Config.servers_path, self.name)
-        self.config_file_path = path.join(self.server_root_path, self.config_file_name)
+    if os.path.isdir(instance_path) is not True or len(os.listdir(instance_path)) == 0:
+        print("not found, creating...", end="", flush=True)
+        subprocess.run(
+            [
+                f"{os.path.join(app_path, 'steamcmd', 'steamcmd.sh')}",
+                f"+force_install_dir {instance_path}",
+                f"+login {username}",
+                "+app_update 223350",
+                "+quit",
+            ],
+            shell=False,
+        )
 
-        # args for launch script, hardcoded since these directories shouldnt change
-        self.be_path = f'-BEpath={self.server_root_path}/battleye/'
-        self.profiles_path = f'-profiles={self.server_root_path}/profiles/'
+        print("created")
 
-        # logs are off by default
-        if self.logs:
-            self.logs = "-dologs -adminlog -netlog"
-        
-        # init server settings using dman.toml inside server root
-        self.configs = Server_Config(self.config_file_path)
-        self.name = self.configs.name
-        self.port = self.configs.port
-        self.discord_webhook = self.configs.webhook
-        self.client_mods = self.configs.client_mods
-        self.server_mods = self.configs.server_mods
-        self.logs = self.configs.logs
+    else:
+        print("done")
 
+    # make default toml
+    if os.path.exists(os.path.join(instance_path, "dman.toml")) is not True:
+        copyfile(
+            os.path.join(os.getcwd(), "resources", "server_default_config.toml"),
+            os.path.join(instance_path, "dman.toml"),
+        )
 
-    def default_config(self):
-        default_config_path = path.join(Dman_Config.dman_path, "resources", "server_default_config.toml")
-        try:
-            with open(default_config_path, "r") as default_config:
-                return default_config.read()
-
-        except FileNotFoundError:
-            print("Default server config not found???")
+    return server_name
 
 
-    def config(self):
-        # Check if the dman config exists
-        if path.exists(self.config_file_path) is not True:
-            print(f"No config found for {self.name}, creating...", end="", flush=True)
-            # os.makedirs(self.server_root_path)
-            with open(self.config_file_path, "w") as f:
-                f.write(self.default_config())
-            print("Done")
-
-        # Populate server config vars with toml values
-        self.configs = Server_Config(self.config_file_path)
+def check_config(path):
+    pass
 
 
-    # def default_server_config(self):
-    #     default_config_path = path.join(Dman_Config.dman_path, "resources", "server_default_config.toml")
-    #     try:
-    #         with open(default_config_path, "r") as default_config:
-    #             return default_config
-    #     except FileNotFoundError:
-    #         print("Default server config not found???")
+def run_server(servers, server_name):
+    instance_path = os.path.join(servers, server_name)
+    subprocess.run(
+        [
+            os.path.join(instance_path, "DayZServer"),
+            f"-config={os.path.join(instance_path, 'serverDZ.cfg')}",
+            "-port=2301",
+            f"-BEpath={os.path.join(instance_path, 'battleye')}",
+            f"-profiles={os.path.join(instance_path, 'profiles')}",
+            "-dologs",
+            "-adminlog",
+            "-netlog",
+            "-freezecheck",
+        ],
+        cwd=instance_path,
+    )
+
+    # print(server.pid)
+
+    # command(f"cd {instance_path} && ./DayZServer -config={os.path.join(instance_path, "serverDZ.cfg")} -port=2301 -BEpath={os.path.join(instance_path, "battleye")} -profiles={os.path.join(instance_path, "profiles")} -dologs -adminlog -netlog -freezecheck")
 
 
-    def verify_integrity(self):
-        # Check if the server root path exists
-        if path.exists(self.server_root_path) is not True:
-            print("Server root path doesn't exist, creating...", end="", flush=True)
-            os.makedirs(self.server_root_path)
-            print("Done")
+async def start_server(instance_path, port, client_mods, server_mods, logs):
+    args = [
+        os.path.join(instance_path, "DayZServer"),
+        f"-config={os.path.join(instance_path, 'serverDZ.cfg')}",
+        f"-port={port}",
+        f"-BEpath={os.path.join(instance_path, 'battleye')}",
+        f"-profiles={os.path.join(instance_path, 'profiles')}",
+        client_mods,
+        server_mods,
+        " " + logs,
+    ]
+
+    process = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=instance_path,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    # Store PID and process object
+    server_info = {"pid": process.pid, "process": process, "port": port}
+
+    # Start monitoring task
+    asyncio.create_task(monitor_process(process))
+
+    return server_info
 
 
-    # def config(self):
-    #     # If config file doesn't exist, create it
-    #     self.verify_integrity()
-    #     if path.exists(self.config_file_path) is not True:
-    #         with open(self.config_file_path, "w") as f:
-    #             f.write(self.default_config())
-        
-    #     # Populate server config vars with toml values
-    #     self.configs = Server_Config(self.config_file_path)
+async def monitor_process(process):
+    try:
+        stdout, stderr = await process.communicate()
+        if stdout:
+            print(f"Server output: {stdout.decode()}")
+        if stderr:
+            print(f"Server error: {stderr.decode()}")
+    except Exception as e:
+        print(f"Monitoring failed: {e}")
+    finally:
+        if process.returncode is None:
+            process.terminate()
+            await process.wait()
 
 
-    def start(self, server_name):
-        server = Server
-        server_script = path.join(self.servers_list, server_name)
-        config = f'-config={path.join(self.servers_list, "serverDZ.cfg")}'
-
-        process = command(f'{server_script} {config} {server.port} {server.be_path} {server.profiles_path} {server.logs} -freezecheck')
+def create_instance(username, steamcmd_path, servers_path, name):
+    os.makedirs(os.path.join(servers_path, name), exist_ok=True)
+    check_server(username, steamcmd_path, servers_path, name)
 
 
-    def stop(self, server):
-        pass # TODO kick all players, wait 3m, stop server
+async def main():
+    # steamcmd = os.path.join(os.getcwd(), "app", "steamcmd")
+    # servers = os.path.join(os.getcwd(), "app", "servers")
+
+    # print(os.getcwd())
+    # run_server("pennybelle")
+
+    dman_config_path = os.path.join(os.getcwd(), "dman.toml")
+    default_dman_config_path = os.path.join(
+        os.getcwd(), "resources", "dman_default_config.toml"
+    )
+
+    if os.path.exists(dman_config_path) is not True:
+        copyfile(default_dman_config_path, dman_config_path)
+
+    dman_config = toml.load(dman_config_path)
+
+    # dman_info = dman_config["dman"]["info"]
+    dman_path = os.getcwd()
+    app_path = os.path.join(dman_path, "app")
+    servers_path = os.path.join(app_path, "servers")
+
+    user_info = dman_config["user"]["info"]
+    username = user_info["steam_username"]
+
+    if username == "STEAM_USERNAME":
+        print("replace STEAM_USERNAME in dman.toml")
+
+    install_steamcmd(os.path.join(app_path, "steamcmd"))
+
+    # config_name = 'dman.toml'
+    # dman_path = '~/dman'
+    # steamcmd_path = '~/dman/steamcmd'
+
+    # initialize existing instances
+    instances = next(os.walk(servers_path))[1]
+    print(instances)
+
+    # instances = ["pennybelle1", "pennybelle2"]
+    # for instance in instances:
+    #     check_server(instance)
+
+    # confirm instance integrity and extract configurations
+    server_configs = [
+        toml.load(
+            os.path.join(
+                app_path,
+                "servers",
+                check_server(username, app_path, instance),
+                "dman.toml",
+            )
+        )
+        for instance in instances
+    ]
+    print(server_configs)
+
+    tasks = []
+    for id, instance in enumerate(instances):
+        server_config = server_configs[id]
+
+        server_info = server_config["server"]["info"]
+        # name = server_info["name"]
+        port = server_info["port"]
+        # webhook = server_info["discord_webhook"]
+        client_mods = server_info["client_mods"]
+        server_mods = server_info["server_mods"]
+        logs = server_info["logs"]
+
+        instance_path = os.path.join(app_path, "servers", instance)
+        # port = 2303 + id
+        tasks.append(start_server(instance_path, port, client_mods, server_mods, logs))
+
+    server_instances = await asyncio.gather(*tasks)
+    await asyncio.sleep(600)
 
 
-
-class SteamCMD(Dman_Config):
-    def __init__(self):
-        self.appid = 223350
-        self.dayz_id = 221100
-
-        self.steam_login = Dman_Config.steam_username
-        self.dman_path = Dman_Config.dman_path
-        self.steamcmd_path = Dman_Config.steamcmd_path
-        self.dman_config = path.join(self.dman_path, Dman_Config.name)
-        self.server_list_path = Dman_Config.servers_path
-
-
-    def check_steamcmd(self):
-        # Check if the steamcmd path exists
-        if path.exists(self.steamcmd_path) is not True:
-            # os.makedirs(self.steamcmd_path) # no dummy you need to curl the steamcmd source files
-            command(f'cd {self.steamcmd_path} && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -')
-
-
-    def download_server(self, server):
-        command(f'{path.join(self.steamcmd_path, "steamcmd.sh")} +force_install_dir {path.join(self.server_list_path, server)} +login {self.steam_login} +app_update 223350 +quit')
-
-
-
-class Manager(SteamCMD, Dman_Config):
-    def __init__(self, name, dman_path, server_list_path):
-        super().__init__(self, name, dman_path, server_list_path)
-        self.config_file_name = Dman_Config.name # default "dman.toml"
-        self.dman_root_path = Dman_Config.dman_path
-        self.config_file_path = path.join(self.dman_root_path, self.config_file_name)
-
-        self.resources_path = path.join(Dman_Config.dman_path, "resources")
-        self.servers_list = next(os.walk(SteamCMD.server_list_path))
-        self.servers_dict = {id:server for (id, server) in enumerate(self.servers_list)}
-        # self.servers = [x[0] for x in os.walk(self.server_list_path)]
-        print(f"DEBUG - Servers: {self.servers}")
-
-
-    def default_config(self):
-        default_config_path = path.join(Dman_Config.dman_path, "resources", "dman_default_config.toml")
-        try:
-            with open(default_config_path, "r") as f:
-                return f.read()
-
-        except FileNotFoundError:
-            print("Default server config not found???")
-
-
-    def config(self):
-        # Check if the dman config exists
-        if path.exists(self.config_file_path) is not True:
-            print("No config found for dman, creating...", end="", flush=True)
-            # os.makedirs(self.server_root_path)
-            with open(self.config_file_path, "w") as f:
-                f.write(self.default_config())
-            print("Done")
-        
-        with open(self.config_file_path, "r") as f:
-            return f.read()
-
-
-
-def main():
-    # init manager to variable
-    dman = Manager(SteamCMD, Dman_Config)
-    # steamcmd = SteamCMD
-
-    # creat config if it doesnt exist, return contents if it does
-    # configs = steamcmd.dman_config()
-
-
-    if not dman.servers_dict:
-        print(f"No servers in {dman.server_list_path}")
-        default_server_name = "default_server"
-        print(f"Downloading new server to {dman.server_list_path}")
-        dman.download_server(default_server_name) # provide server name desired
-        # TODO allow deploy new server instance with default values
-        dman.servers_list.append(default_server_name)
-
-    print("Servers:")
-    for id, name in dman.servers_dict.items():
-        print(f"\t{id} - {name}")
-
-    print("Starting servers")
-    for id, name in dman.servers_dict.items():
-        print(f"Starting server #{id} - {name}")
-
-        try:
-            Server.start(name)
-        except Exception as e:
-            print(f"Error - {e}")
-
-        print(f"Server #{id} ({name}) is running!")
-
-    # print(
-    #     """Options:"""
-    #     """\n\tu - Start server (Up)"""
-    #     """\n\td - Stop server (Down)"""
-    # )
-
-    # while True:
-    #     k = cv2.waitKey(1) & 0xFF
-    #         # press 'q' to exit
-    #     if k == ord('q'):
-    #         break
-    #     elif k == ord('b'):
-    #         # change a variable / do something ...
-    #         pass
-    #     elif k == ord('k'):
-    #         # change a variable / do something ...
-    #         pass
-
-main()
+asyncio.run(main())

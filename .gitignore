@@ -1,4 +1,9 @@
 .venv
+.vscode
+*.code-workspace
+
 
 legacy/*
 app/*
+
+dman.toml

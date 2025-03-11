@@ -1,0 +1,22 @@
+##########
+# dman   #
+##########
+[dman.info]
+steamcmd_path = 'steamcmd'
+servers_path = 'servers'
+
+
+##########
+# user   #
+##########
+[user.info]
+steam_username = 'STEAM_USERNAME'
+
+
+###########
+# servers #
+###########
+[servers.list]
+instance_1 = "DEFAULT_INSTANCE_1"
+# instance_2 = "DEFAULT_INSTANCE_2" # this server has been commented out therefor disabled
+# you can add more instances just keep to the format
