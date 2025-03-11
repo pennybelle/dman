@@ -2,6 +2,7 @@
 .vscode
 *.code-workspace
 
+*_backup*
 
 legacy/*
 app/*

@@ -39,7 +39,7 @@ import logging
 from __logger__ import setup_logger
 
 log = logging.getLogger(__name__)
-setup_logger(level=20, stream_logs=True)
+setup_logger(level=10, stream_logs=True)
 ## LEVELS ##
 # 10: DEBUG
 # 20: INFO
@@ -80,6 +80,29 @@ def check_steamcmd(steamcmd):
         )
 
 
+def check_servers(servers_path):
+    # ensure servers path exists
+    if not os.path.exists(servers_path):
+        os.makedirs(servers_path, exist_ok=True)
+        log.info(f"created servers directory at {servers_path}")
+
+    # initialize existing instances
+    try:
+        # instances = next(os.walk(servers_path))
+        instances = [
+            d
+            for d in os.listdir(servers_path)
+            if os.path.isdir(os.path.join(servers_path, d))
+        ]
+
+    except StopIteration:
+        # handle the case where the directory doesn't exist or is empty
+        log.info(f"no instances found in {servers_path}")
+        instances = []  # default empty result
+
+    return instances
+
+
 def check_server(username, app_path, server_name):
     log.info(f"initializing instance {server_name}...")
     instance_path = os.path.join(app_path, "servers", server_name)
@@ -98,7 +121,10 @@ def check_server(username, app_path, server_name):
         )
 
     # make default toml
-    if os.path.exists(os.path.join(instance_path, "dman.toml")) is not True:
+    if (
+        instance_path
+        and os.path.exists(os.path.join(instance_path, "dman.toml")) is not True
+    ):
         copyfile(
             os.path.join(os.getcwd(), "resources", "server_default_config.toml"),
             os.path.join(instance_path, "dman.toml"),
@@ -199,27 +225,34 @@ async def main():
 
     if username == "STEAM_USERNAME":
         log.info("replace STEAM_USERNAME in dman.toml")
+        return
 
     # ensure steamcmd is installed
     check_steamcmd(steamcmd_path)
 
-    # initialize existing instances
-    instances = next(os.walk(servers_path))[1]
+    instance_info = dman_config["servers"]["list"]
+    print(instance_info)
+
+    # ensure servers directory is initiated
+    check_servers(servers_path)
+
+    instances = [key for key in instance_info.keys() if instance_info[key] is True]
     log.debug(instances)
 
-    # confirm instance integrity and extract configurations
-    server_configs = [
-        toml.load(
-            os.path.join(
-                app_path,
-                "servers",
-                check_server(username, app_path, instance),
-                "dman.toml",
+    if len(instances) > 0:
+        # confirm instance integrity and extract configurations
+        server_configs = [
+            toml.load(
+                os.path.join(
+                    app_path,
+                    "servers",
+                    check_server(username, app_path, instance),
+                    "dman.toml",
+                )
             )
-        )
-        for instance in instances
-    ]
-    log.debug(server_configs)
+            for instance in instances
+        ]
+        log.debug(server_configs)
 
     # this is where we store server information and the actual processes
     servers = {}
@@ -240,10 +273,11 @@ async def main():
         servers[instance] = [instance_path, port, client_mods, server_mods, logs]
 
     log.debug(servers)
-    # tasks.append(start_server(instance_path, port, client_mods, server_mods, logs))
+    # processes.append(start_server(instance_path, port, client_mods, server_mods, logs))
 
-    # server_instances = await asyncio.gather(*tasks)
-    # await asyncio.sleep(600)
+    # server_instances = await asyncio.gather(*processes)
+    # while True:
+    #     await asyncio.sleep(300)
 
 
 asyncio.run(main())
