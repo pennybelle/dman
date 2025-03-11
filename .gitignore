@@ -4,6 +4,7 @@
 
 *_backup*
 
+__pycache__/*
 legacy/*
 app/*
 
