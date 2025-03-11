@@ -17,6 +17,6 @@ steam_username = 'STEAM_USERNAME'
 # servers #
 ###########
 [servers.list]
-instance_1 = "DEFAULT_INSTANCE_1"
-# instance_2 = "DEFAULT_INSTANCE_2" # this server has been commented out therefor disabled
-# you can add more instances just keep to the format
+default_instance_1 = true
+default_instance_2 = false # this server has been disabled (stopped)
+# you can add more instances just keep to the format (all lowercase)
