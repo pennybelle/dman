@@ -35,6 +35,24 @@ from shutil import copyfile
 # servers = os.path.join(dman_path, "app", "servers")
 
 
+import logging
+from __logger__ import setup_logger
+
+log = logging.getLogger(__name__)
+setup_logger(level=20, stream_logs=True)
+## LEVELS ##
+# 10: DEBUG
+# 20: INFO
+# 30: WARNING
+# 40: ERROR
+# 50: CRITICAL
+
+# log.debug("This is a debug log")
+# log.info("This is an info log")
+# log.warning("This is a warn log")
+# log.critical("This is a criticallog")
+
+
 # used for downloading steamcmd
 def command(input):
     output = Popen(
@@ -52,23 +70,22 @@ def command(input):
 #     return shlex.split(command)
 
 
-def install_steamcmd(steamcmd):
-    print("checking for steamcmd...", end="", flush=True)
+def check_steamcmd(steamcmd):
+    log.info("checking for steamcmd...")
     if os.path.isdir(steamcmd) is not True:
-        print("not found, installing...", end="", flush=True)
+        log.info("not found, installing...")
         os.makedirs(steamcmd)
         command(
             f'cd {steamcmd} && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -'
         )
-    print("done")
 
 
 def check_server(username, app_path, server_name):
-    print(f"initializing instance {server_name}...", end="", flush=True)
+    log.info(f"initializing instance {server_name}...")
     instance_path = os.path.join(app_path, "servers", server_name)
 
     if os.path.isdir(instance_path) is not True or len(os.listdir(instance_path)) == 0:
-        print("not found, creating...", end="", flush=True)
+        log.info("creating instance...")
         subprocess.run(
             [
                 f"{os.path.join(app_path, 'steamcmd', 'steamcmd.sh')}",
@@ -80,11 +97,6 @@ def check_server(username, app_path, server_name):
             shell=False,
         )
 
-        print("created")
-
-    else:
-        print("done")
-
     # make default toml
     if os.path.exists(os.path.join(instance_path, "dman.toml")) is not True:
         copyfile(
@@ -93,10 +105,6 @@ def check_server(username, app_path, server_name):
         )
 
     return server_name
-
-
-def check_config(path):
-    pass
 
 
 def run_server(servers, server_name):
@@ -116,10 +124,6 @@ def run_server(servers, server_name):
         cwd=instance_path,
     )
 
-    # print(server.pid)
-
-    # command(f"cd {instance_path} && ./DayZServer -config={os.path.join(instance_path, "serverDZ.cfg")} -port=2301 -BEpath={os.path.join(instance_path, "battleye")} -profiles={os.path.join(instance_path, "profiles")} -dologs -adminlog -netlog -freezecheck")
-
 
 async def start_server(instance_path, port, client_mods, server_mods, logs):
     args = [
@@ -128,7 +132,7 @@ async def start_server(instance_path, port, client_mods, server_mods, logs):
         f"-port={port}",
         f"-BEpath={os.path.join(instance_path, 'battleye')}",
         f"-profiles={os.path.join(instance_path, 'profiles')}",
-        client_mods,
+        f"-mod={client_mods}" if client_mods else "",
         server_mods,
         " " + logs,
     ]
@@ -153,11 +157,11 @@ async def monitor_process(process):
     try:
         stdout, stderr = await process.communicate()
         if stdout:
-            print(f"Server output: {stdout.decode()}")
+            log.info(f"Server output: {stdout.decode()}")
         if stderr:
-            print(f"Server error: {stderr.decode()}")
+            log.info(f"Server error: {stderr.decode()}")
     except Exception as e:
-        print(f"Monitoring failed: {e}")
+        log.info(f"Monitoring failed: {e}")
     finally:
         if process.returncode is None:
             process.terminate()
@@ -170,46 +174,38 @@ def create_instance(username, steamcmd_path, servers_path, name):
 
 
 async def main():
-    # steamcmd = os.path.join(os.getcwd(), "app", "steamcmd")
-    # servers = os.path.join(os.getcwd(), "app", "servers")
-
-    # print(os.getcwd())
-    # run_server("pennybelle")
-
+    # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
     default_dman_config_path = os.path.join(
         os.getcwd(), "resources", "dman_default_config.toml"
     )
 
+    # ensure dman config
     if os.path.exists(dman_config_path) is not True:
         copyfile(default_dman_config_path, dman_config_path)
 
+    # load dman config
     dman_config = toml.load(dman_config_path)
 
-    # dman_info = dman_config["dman"]["info"]
+    # initialize app paths
     dman_path = os.getcwd()
     app_path = os.path.join(dman_path, "app")
     servers_path = os.path.join(app_path, "servers")
+    steamcmd_path = os.path.join(app_path, "steamcmd")
 
+    # grab username from dman config
     user_info = dman_config["user"]["info"]
     username = user_info["steam_username"]
 
     if username == "STEAM_USERNAME":
-        print("replace STEAM_USERNAME in dman.toml")
+        log.info("replace STEAM_USERNAME in dman.toml")
 
-    install_steamcmd(os.path.join(app_path, "steamcmd"))
-
-    # config_name = 'dman.toml'
-    # dman_path = '~/dman'
-    # steamcmd_path = '~/dman/steamcmd'
+    # ensure steamcmd is installed
+    check_steamcmd(steamcmd_path)
 
     # initialize existing instances
     instances = next(os.walk(servers_path))[1]
-    print(instances)
-
-    # instances = ["pennybelle1", "pennybelle2"]
-    # for instance in instances:
-    #     check_server(instance)
+    log.debug(instances)
 
     # confirm instance integrity and extract configurations
     server_configs = [
@@ -223,9 +219,12 @@ async def main():
         )
         for instance in instances
     ]
-    print(server_configs)
+    log.debug(server_configs)
 
-    tasks = []
+    # this is where we store server information and the actual processes
+    servers = {}
+    processes = []
+
     for id, instance in enumerate(instances):
         server_config = server_configs[id]
 
@@ -238,11 +237,13 @@ async def main():
         logs = server_info["logs"]
 
         instance_path = os.path.join(app_path, "servers", instance)
-        # port = 2303 + id
-        tasks.append(start_server(instance_path, port, client_mods, server_mods, logs))
+        servers[instance] = [instance_path, port, client_mods, server_mods, logs]
 
-    server_instances = await asyncio.gather(*tasks)
-    await asyncio.sleep(600)
+    log.debug(servers)
+    # tasks.append(start_server(instance_path, port, client_mods, server_mods, logs))
+
+    # server_instances = await asyncio.gather(*tasks)
+    # await asyncio.sleep(600)
 
 
 asyncio.run(main())
