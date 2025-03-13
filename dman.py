@@ -144,6 +144,82 @@ async def monitor_process(process):
             await process.wait()
 
 
+def find_steam_workshop_path(app_id, app_path):
+    """
+    Find the Steam workshop content directory for a specific app_id.
+    Returns the full path to the workshop content directory or None if not found.
+    """
+    # Common Steam installation locations
+    possible_paths = [
+        # Linux paths
+        os.path.expanduser("~/.local/share/Steam/steamapps/workshop/content/"),
+        os.path.expanduser("~/Steam/steamapps/workshop/content/"),
+        os.path.expanduser("~/.steam/steam/steamapps/workshop/content/"),
+        os.path.expanduser("~/.steam/root/steamapps/workshop/content/"),
+        # Add more paths if needed for different distributions or configurations
+    ]
+
+    # Check if any of the paths contain the app_id directory
+    for base_path in possible_paths:
+        full_path = os.path.join(base_path, app_id)
+        if os.path.exists(full_path) and os.path.isdir(full_path):
+            log.debug(f"Found Steam workshop content directory at: {full_path}")
+            return full_path
+
+    # If steamcmd has been run, we might be able to find the path from its config
+    home_dir = os.path.expanduser("~")
+    registry_path = os.path.join(home_dir, ".steam", "registry.vdf")
+    if os.path.exists(registry_path):
+        try:
+            with open(registry_path, "r") as f:
+                content = f.read()
+                # Simple parsing to find installation path
+                for line in content.split("\n"):
+                    if "BaseInstallFolder" in line or "SteamPath" in line:
+                        # Extract path from quotes
+                        path_match = line.split('"')
+                        if len(path_match) >= 4:
+                            steam_path = path_match[3].replace("\\\\", "/")
+                            workshop_path = os.path.join(
+                                steam_path, "steamapps", "workshop", "content", app_id
+                            )
+                            if os.path.exists(workshop_path):
+                                log.debug(
+                                    f"Found Steam workshop content directory from registry: {workshop_path}"
+                                )
+                                return workshop_path
+        except Exception as e:
+            log.warning(f"Failed to parse Steam registry file: {e}")
+
+    # Try to find using steamcmd
+    try:
+        result = subprocess.run(
+            ["./steamcmd.sh", "+quit"],
+            shell=False,
+            cwd=os.path.join(app_path, "steamcmd"),
+            capture_output=True,
+            text=True,
+        )
+        for line in result.stdout.split("\n"):
+            if "Steam API initialized" in line:
+                log_parts = line.split(" - ")
+                if len(log_parts) > 1:
+                    steam_path = log_parts[1].strip()
+                    workshop_path = os.path.join(
+                        steam_path, "steamapps", "workshop", "content", app_id
+                    )
+                    if os.path.exists(workshop_path):
+                        log.debug(
+                            f"Found Steam workshop content directory from steamcmd: {workshop_path}"
+                        )
+                        return workshop_path
+    except Exception as e:
+        log.warning(f"Failed to run steamcmd to find Steam path: {e}")
+
+    log.warning("Could not find Steam workshop content directory")
+    return None
+
+
 def validate_workshop_mods(username, server_configs, app_path):
     steamcmd_path = os.path.join(app_path, "steamcmd")
     mod_templates_path = os.path.join(
@@ -168,7 +244,7 @@ def validate_workshop_mods(username, server_configs, app_path):
         # get names for existing mods
         for mod_id in existing_mod_ids:
             meta_path = os.path.join(mod_templates_path, mod_id, "meta.cpp")
-            name = "Unknown"
+            name = mod_id
 
             if os.path.exists(meta_path):
                 with open(meta_path) as cpp:
@@ -228,19 +304,14 @@ def validate_workshop_mods(username, server_configs, app_path):
             [f"+workshop_download_item 221100 {mod}" for mod in mods_to_download]
         )
 
-        # create symlinks from default location to project directory
-        default_workshop_path = os.path.expanduser(
-            os.path.join(
-                "~",
-                ".local",
-                "share",
-                "Steam",
-                "steamapps",
-                "workshop",
-                "content",
-                "221100",
-            )
-        )
+        # Find Steam workshop content directory
+        default_workshop_path = find_steam_workshop_path("221100", app_path)
+        if not default_workshop_path:
+            log.warning("Could not find Steam workshop content directory")
+            # Fallback to the path in the project directory
+            default_workshop_path = mod_templates_path
+
+        log.info(f"using Steam workshop content directory: {default_workshop_path}")
 
         # run steamcmd to download the mods
         subprocess.run(
