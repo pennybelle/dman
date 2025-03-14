@@ -570,8 +570,8 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
     time.sleep(3)  # Increased from 2 to 3 seconds for safety
 
     # create updated mod strings
-    client_mods = f"@{';@'.join(client_mods)}" if client_mods else ""
-    server_mods = f"@{';@'.join(server_mods)}" if server_mods else ""
+    client_mods = f"@{';@'.join(processed_client)}" if processed_client else ""
+    server_mods = f"@{';@'.join(processed_server)}" if processed_server else ""
 
     log.debug(f"updated client mods: {client_mods}")
     log.debug(f"updated server mods: {server_mods}")
