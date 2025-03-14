@@ -2,8 +2,9 @@ import os
 import subprocess
 import asyncio
 import logging
-import toml
 import shutil
+import time
+import toml
 
 from subprocess import Popen, PIPE
 from shutil import copyfile, copytree, copy2
@@ -69,6 +70,8 @@ def validate_server_files(username, app_path, server_name):
     log.info(f"initializing instance {server_name}...")
     instance_path = os.path.join(app_path, "servers", server_name)
 
+    needs_config_edit = False
+
     if os.path.isdir(instance_path) is not True or len(os.listdir(instance_path)) == 0:
         log.info("creating instance...")
         subprocess.run(
@@ -92,10 +95,10 @@ def validate_server_files(username, app_path, server_name):
             os.path.join(instance_path, "server.toml"),
         )
 
-        log.warning("edit the server's server.toml before proceeding")
-        exit()
+        needs_config_edit = True
+        log.warning(f"edit the server's server.toml for {server_name} before starting")
 
-    return server_name
+    return server_name, needs_config_edit
 
 
 async def start_server(instance_path, port, client_mods, server_mods, logs):
@@ -343,21 +346,24 @@ def validate_workshop_mods(username, server_configs, app_path):
     # update mod_dict with names for newly downloaded mods
     for mod_id in mods_to_download:
         meta_path = os.path.join(mod_templates_path, mod_id, "meta.cpp")
-        name = "Unknown"
+        name = mod_id  # Default to using the ID as the name
 
         if os.path.exists(meta_path):
-            with open(meta_path) as cpp:
-                lines = cpp.read().splitlines()
+            try:
+                with open(meta_path) as cpp:
+                    lines = cpp.read().splitlines()
 
-            for line in lines:
-                if "name" in line:
-                    name = (
-                        line.replace('"', "")
-                        .replace(";", "")
-                        .replace("name =", "")
-                        .strip()
-                    )
-                    break
+                for line in lines:
+                    if "name" in line:
+                        name = (
+                            line.replace('"', "")
+                            .replace(";", "")
+                            .replace("name =", "")
+                            .strip()
+                        )
+                        break
+            except Exception as e:
+                log.warning(f"failed to parse meta.cpp for mod {mod_id}: {e}")
 
         mod_dict[mod_id] = name
         known_mod_names[name] = mod_id
@@ -465,7 +471,11 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
                 log.warning(f"error comparing mod timestamps: {e}")
 
         # guard clause
-        if not needs_copy or os.path.exists(workshop_mod_path) is not True:
+        if not needs_copy:
+            return mod_name
+            
+        if not os.path.exists(workshop_mod_path):
+            log.warning(f"Workshop mod path does not exist: {workshop_mod_path}")
             return mod_name
 
         # copy mod if needed
@@ -521,6 +531,8 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
         processed_name = process_and_copy_mod(mod)
         if processed_name:
             processed_server.append(processed_name)
+
+    time.sleep(2)
 
     # create updated mod strings
     client_mods = f"@{';@'.join(processed_client)}" if processed_client else ""
@@ -578,23 +590,29 @@ async def main():
     log.debug(f"active_instances: {active_instances}")
 
     # confirm instance integrity and extract configurations
+    instances_needing_edits = []
     if len(instances) > 0:
-        server_configs = [
-            toml.load(
-                os.path.join(
-                    app_path,
-                    "servers",
-                    validate_server_files(username, app_path, instance),
-                    "server.toml",
-                )
-            )
-            for instance in instances
-        ]
+        server_configs = []
+        for instance in instances:
+            instance_name, needs_edit = validate_server_files(username, app_path, instance)
+            if needs_edit:
+                instances_needing_edits.append(instance_name)
+            
+            # Load configs for existing instances
+            config_path = os.path.join(app_path, "servers", instance_name, "server.toml")
+            if os.path.exists(config_path):
+                server_configs.append(toml.load(config_path))
+        
         log.debug(f"server_configs: {server_configs}")
-
     else:
         log.warning("no instances in dman.toml")
         return
+
+    # Exit if any instances need configuration
+    if instances_needing_edits:
+        log.warning(f"The following instances need configuration: {', '.join(instances_needing_edits)}")
+        log.warning("Please edit their server.toml files before running the script again.")
+        exit()
 
     mod_dict = validate_workshop_mods(username, server_configs, app_path)
     log.debug(f"mod_dict: {mod_dict}")
