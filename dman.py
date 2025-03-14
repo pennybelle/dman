@@ -101,6 +101,7 @@ def validate_server_files(username, app_path, server_name):
     return server_name, needs_config_edit
 
 
+# start instance
 async def start_server(instance_path, port, client_mods, server_mods, logs):
     args = [
         os.path.join(instance_path, "DayZServer"),
@@ -132,6 +133,7 @@ async def start_server(instance_path, port, client_mods, server_mods, logs):
     return server_info
 
 
+# monitor instance
 async def monitor_process(process):
     try:
         stdout, stderr = await process.communicate()
@@ -147,6 +149,7 @@ async def monitor_process(process):
             await process.wait()
 
 
+# find Steam path if it's not in expected location
 def find_steam_workshop_path(app_id, app_path):
     """
     Find the Steam workshop content directory for a specific app_id.
@@ -223,6 +226,7 @@ def find_steam_workshop_path(app_id, app_path):
     return None
 
 
+# ensure mod installation in workshop and server root
 def validate_workshop_mods(username, server_configs, app_path):
     steamcmd_path = os.path.join(app_path, "steamcmd")
     mod_templates_path = os.path.join(
@@ -371,6 +375,7 @@ def validate_workshop_mods(username, server_configs, app_path):
     return mod_dict
 
 
+# parse mod string to extract ids and names
 def process_mod_string(mod_string, all_mod_ids, all_mod_names, known_mod_names):
     """helper function to parse mod strings and extract IDs and names"""
     if not mod_string:
@@ -392,6 +397,7 @@ def process_mod_string(mod_string, all_mod_ids, all_mod_names, known_mod_names):
                 all_mod_ids.add(known_mod_names[mod])
 
 
+# copy mods to server directories and update configs
 def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
     """
     copy mods to server directories and update config strings
@@ -544,6 +550,7 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
     return client_mods, server_mods
 
 
+# lets go
 async def main():
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
