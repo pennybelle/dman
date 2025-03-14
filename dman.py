@@ -254,18 +254,21 @@ def validate_workshop_mods(username, server_configs, app_path):
             name = mod_id
 
             if os.path.exists(meta_path):
-                with open(meta_path) as cpp:
-                    lines = cpp.read().splitlines()
+                try:
+                    with open(meta_path) as cpp:
+                        lines = cpp.read().splitlines()
 
-                for line in lines:
-                    if "name" in line:
-                        name = (
-                            line.replace('"', "")
-                            .replace(";", "")
-                            .replace("name =", "")
-                            .strip()
-                        )
-                        break
+                    for line in lines:
+                        if "name" in line:
+                            name = (
+                                line.replace('"', "")
+                                .replace(";", "")
+                                .replace("name =", "")
+                                .strip()
+                            )
+                            break
+                except Exception as e:
+                    log.warning(f"Error reading meta.cpp for mod {mod_id}: {e}")
 
             mod_dict[mod_id] = name
             known_mod_names[name] = mod_id
@@ -305,12 +308,8 @@ def validate_workshop_mods(username, server_configs, app_path):
 
     log.debug(f"mods to download: {mods_to_download}")
 
-    # download missing mods
+    # download missing mods one at a time with timeout protection
     if mods_to_download:
-        workshop_list = " ".join(
-            [f"+workshop_download_item 221100 {mod}" for mod in mods_to_download]
-        )
-
         # Find Steam workshop content directory
         default_workshop_path = find_steam_workshop_path("221100", app_path)
         if not default_workshop_path:
@@ -320,34 +319,62 @@ def validate_workshop_mods(username, server_configs, app_path):
 
         log.info(f"using Steam workshop content directory: {default_workshop_path}")
 
-        # run steamcmd to download the mods
-        subprocess.run(
-            [
-                "./steamcmd.sh",
-                f"+login {username}",
-            ]
-            + workshop_list.split()
-            + ["+quit"],
-            shell=False,
-            cwd=steamcmd_path,
-        )
-
-        # create symlinks for each downloaded mod
+        # Process mods one at a time to prevent hanging
         for mod_id in mods_to_download:
-            default_mod_path = os.path.join(default_workshop_path, mod_id)
-            target_mod_path = os.path.join(mod_templates_path, mod_id)
+            try:
+                log.info(f"Downloading mod {mod_id}...")
 
-            if os.path.exists(default_mod_path) and not os.path.exists(target_mod_path):
-                os.symlink(default_mod_path, target_mod_path)
-                log.info(
-                    f"created symlink for mod {mod_id} from {default_mod_path} to {target_mod_path}"
+                # Create a command list for better security and control
+                cmd = [
+                    "./steamcmd.sh",
+                    f"+login",
+                    f"{username}",
+                    f"+workshop_download_item",
+                    "221100",
+                    f"{mod_id}",
+                    "+quit",
+                ]
+
+                # Run with timeout
+                process = subprocess.run(
+                    cmd,
+                    shell=False,
+                    cwd=steamcmd_path,
+                    timeout=300,  # 5 minute timeout per mod
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                 )
 
-        print()  # steamcmd doesn't print newline when finished downloading
+                if process.returncode != 0:
+                    log.warning(
+                        f"Error downloading mod {mod_id}: {process.stderr.decode('utf-8')}"
+                    )
+                else:
+                    log.info(f"Successfully downloaded mod {mod_id}")
+
+                # create symlink for the downloaded mod
+                default_mod_path = os.path.join(default_workshop_path, mod_id)
+                target_mod_path = os.path.join(mod_templates_path, mod_id)
+
+                if os.path.exists(default_mod_path) and not os.path.exists(
+                    target_mod_path
+                ):
+                    try:
+                        os.symlink(default_mod_path, target_mod_path)
+                        log.info(
+                            f"created symlink for mod {mod_id} from {default_mod_path} to {target_mod_path}"
+                        )
+                    except Exception as e:
+                        log.warning(f"Failed to create symlink for mod {mod_id}: {e}")
+
+            except subprocess.TimeoutExpired:
+                log.error(f"Timeout while downloading mod {mod_id}")
+            except Exception as e:
+                log.error(f"Error processing mod {mod_id}: {e}")
     else:
         log.info("no new mods to download")
 
-    # update mod_dict with names for newly downloaded mods
+    # Update mod_dict with names for newly downloaded mods
     for mod_id in mods_to_download:
         meta_path = os.path.join(mod_templates_path, mod_id, "meta.cpp")
         name = mod_id  # Default to using the ID as the name
@@ -367,7 +394,7 @@ def validate_workshop_mods(username, server_configs, app_path):
                         )
                         break
             except Exception as e:
-                log.warning(f"failed to parse meta.cpp for mod {mod_id}: {e}")
+                log.warning(f"Failed to parse meta.cpp for mod {mod_id}: {e}")
 
         mod_dict[mod_id] = name
         known_mod_names[name] = mod_id
@@ -462,7 +489,7 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
 
         needs_copy = False
 
-        # cetermine if mod needs copying
+        # determine if mod needs copying
         if not os.path.exists(server_mod_path):
             # mod doesn't exist in server directory
             needs_copy = True
@@ -479,7 +506,7 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
         # guard clause
         if not needs_copy:
             return mod_name
-            
+
         if not os.path.exists(workshop_mod_path):
             log.warning(f"Workshop mod path does not exist: {workshop_mod_path}")
             return mod_name
@@ -526,23 +553,25 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
 
         return mod_name
 
-    # process client mods
+    # Process all client mods
     for mod in client:
         processed_name = process_and_copy_mod(mod)
         if processed_name:
             processed_client.append(processed_name)
 
-    # process server mods
+    # Process all server mods
     for mod in server:
         processed_name = process_and_copy_mod(mod)
         if processed_name:
             processed_server.append(processed_name)
 
-    time.sleep(2)
+    # Add a sync point here - ensure all file operations are complete
+    # Wait for any potential file operations to complete
+    time.sleep(3)  # Increased from 2 to 3 seconds for safety
 
     # create updated mod strings
-    client_mods = f"@{';@'.join(processed_client)}" if processed_client else ""
-    server_mods = f"@{';@'.join(processed_server)}" if processed_server else ""
+    client_mods = f"@{';@'.join(client_mods)}" if client_mods else ""
+    server_mods = f"@{';@'.join(server_mods)}" if server_mods else ""
 
     log.debug(f"updated client mods: {client_mods}")
     log.debug(f"updated server mods: {server_mods}")
@@ -601,15 +630,19 @@ async def main():
     if len(instances) > 0:
         server_configs = []
         for instance in instances:
-            instance_name, needs_edit = validate_server_files(username, app_path, instance)
+            instance_name, needs_edit = validate_server_files(
+                username, app_path, instance
+            )
             if needs_edit:
                 instances_needing_edits.append(instance_name)
-            
+
             # Load configs for existing instances
-            config_path = os.path.join(app_path, "servers", instance_name, "server.toml")
+            config_path = os.path.join(
+                app_path, "servers", instance_name, "server.toml"
+            )
             if os.path.exists(config_path):
                 server_configs.append(toml.load(config_path))
-        
+
         log.debug(f"server_configs: {server_configs}")
     else:
         log.warning("no instances in dman.toml")
@@ -617,29 +650,81 @@ async def main():
 
     # Exit if any instances need configuration
     if instances_needing_edits:
-        log.warning(f"The following instances need configuration: {', '.join(instances_needing_edits)}")
-        log.warning("Please edit their server.toml files before running the script again.")
+        log.warning(
+            f"The following instances need configuration: {', '.join(instances_needing_edits)}"
+        )
+        log.warning(
+            "Please edit their server.toml files before running the script again."
+        )
         exit()
 
     mod_dict = validate_workshop_mods(username, server_configs, app_path)
     log.debug(f"mod_dict: {mod_dict}")
 
+    try:
+        mod_dict = validate_workshop_mods(username, server_configs, app_path)
+        log.debug(f"mod_dict: {mod_dict}")
+    except Exception as e:
+        log.error(f"Error validating workshop mods: {e}")
+        mod_dict = {}  # Use empty dict if validation fails
+
     # this is where we store server information and the actual processes
     servers = {}
     processes = []
 
+    # # initiate configurations with server.tomls
+    # for id, instance in enumerate(active_instances):
+    #     server_config = server_configs[id]
+
+    #     server_info = server_config["server"]["info"]
+    #     port = server_info["port"]
+    #     # webhook = server_info["discord_webhook"]
+    #     client_mods = server_info["client_mods"]
+    #     server_mods = server_info["server_mods"]
+    #     logs = server_info["logs"]
+
+    #     instance_path = os.path.join(app_path, "servers", instance)
+    #     servers[instance] = {
+    #         "instance_path": instance_path,
+    #         "port": port,
+    #         "client_mods": client_mods,
+    #         "server_mods": server_mods,
+    #         "logs": logs,
+    #     }
+
+    #     if client_mods or server_mods:
+    #         client_mods, server_mods = import_mods(
+    #             app_path, instance, client_mods, server_mods, mod_dict
+    #         )
+    #         with open(
+    #             os.path.join(
+    #                 app_path,
+    #                 "servers",
+    #                 instance,
+    #                 "server.toml",
+    #             ),
+    #             "w",
+    #         ) as f:
+    #             server_config["server"]["info"]["client_mods"] = client_mods
+    #             server_config["server"]["info"]["server_mods"] = server_mods
+    #             toml.dump(server_config, f)
+
     # initiate configurations with server.tomls
     for id, instance in enumerate(active_instances):
-        server_config = server_configs[id]
+        # Find the corresponding server config
+        # This assumes active_instances is a subset of instances
+        instance_index = instances.index(instance)
+        server_config = server_configs[instance_index]
 
         server_info = server_config["server"]["info"]
         port = server_info["port"]
-        # webhook = server_info["discord_webhook"]
         client_mods = server_info["client_mods"]
         server_mods = server_info["server_mods"]
         logs = server_info["logs"]
 
         instance_path = os.path.join(app_path, "servers", instance)
+
+        # First collect all the server information
         servers[instance] = {
             "instance_path": instance_path,
             "port": port,
@@ -648,26 +733,31 @@ async def main():
             "logs": logs,
         }
 
+        # Process and update mods separately
         if client_mods or server_mods:
-            client_mods, server_mods = import_mods(
+            updated_client_mods, updated_server_mods = import_mods(
                 app_path, instance, client_mods, server_mods, mod_dict
             )
+
+            # Update the server_config in memory
+            server_config["server"]["info"]["client_mods"] = updated_client_mods
+            server_config["server"]["info"]["server_mods"] = updated_server_mods
+
+            # Update the config file
             with open(
-                os.path.join(
-                    app_path,
-                    "servers",
-                    instance,
-                    "server.toml",
-                ),
+                os.path.join(app_path, "servers", instance, "server.toml"),
                 "w",
             ) as f:
-                server_config["server"]["info"]["client_mods"] = client_mods
-                server_config["server"]["info"]["server_mods"] = server_mods
                 toml.dump(server_config, f)
+
+            # Update the servers dictionary with new mod values
+            servers[instance]["client_mods"] = updated_client_mods
+            servers[instance]["server_mods"] = updated_server_mods
 
     log.debug(f"servers: {servers}")
 
-    for arg in servers.values():
+    # Prepare the server processes
+    for instance, arg in servers.items():
         processes.append(
             start_server(
                 arg["instance_path"],
