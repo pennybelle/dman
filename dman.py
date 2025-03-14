@@ -528,9 +528,9 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
             # check for keys directory with any capitalization
             keys_dir_found = False
             for sub_dir in os.listdir(server_mod_path):
-                if sub_dir.lower() == "keys" and os.path.isdir(
-                    os.path.join(server_mod_path, sub_dir)
-                ):
+                if (
+                    sub_dir.lower() == "keys" or sub_dir.lower() == "key"
+                ) and os.path.isdir(os.path.join(server_mod_path, sub_dir)):
                     keys_src = os.path.join(server_mod_path, sub_dir)
                     keys_dir_found = True
 
