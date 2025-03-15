@@ -3,6 +3,7 @@
 ############
 [server.info]
 port = 2302
+steam_query_port = 27016
 discord_webhook = ''
 client_mods = ''
 server_mods = ''

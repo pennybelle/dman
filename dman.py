@@ -1,30 +1,20 @@
 import os
 import subprocess
-import asyncio
 import logging
 import shutil
 import time
 import toml
-
+import threading
+from queue import Queue
 from subprocess import Popen, PIPE
-from shutil import copyfile, copytree, copy2
+from shutil import copyfile, copytree
 from sys import exit
+
+# Assuming your __logger__.py is in the same directory
 from __logger__ import setup_logger
 
 log = logging.getLogger(__name__)
 setup_logger(level=10, stream_logs=True)
-## LEVELS ##
-# 10: DEBUG
-# 20: INFO
-# 30: WARNING
-# 40: ERROR
-# 50: CRITICAL
-
-# log.debug("This is a debug log")
-# log.info("This is an info log")
-# log.warning("This is a warn log")
-# log.critical("This is a criticallog")
-
 
 # install steamcmd if needed
 def check_steamcmd(steamcmd):
@@ -40,7 +30,6 @@ def check_steamcmd(steamcmd):
             stderr=PIPE,
         ).communicate()
 
-
 # initiate servers directory and return list of sub-directories
 def check_servers(servers_path):
     # ensure servers path exists
@@ -50,20 +39,17 @@ def check_servers(servers_path):
 
     # initialize existing instances
     try:
-        # instances = next(os.walk(servers_path))
         instances = [
             d
             for d in os.listdir(servers_path)
             if os.path.isdir(os.path.join(servers_path, d))
         ]
-
     except StopIteration:
         # handle the case where the directory doesn't exist or is empty
         log.info(f"no instances found in {servers_path}")
         instances = []  # default empty result
 
     return instances
-
 
 #  initiate server files and default config if needed
 def validate_server_files(username, app_path, server_name):
@@ -100,46 +86,102 @@ def validate_server_files(username, app_path, server_name):
 
     return server_name, needs_config_edit
 
+# Function to read process output
+def read_output(process, instance_name, output_queue):
+    while True:
+        if process.poll() is not None:
+            # Process has terminated
+            log.info(f"Server {instance_name} process terminated with code {process.returncode}")
+            break
 
-# start instance
-async def start_server(app_path, instance, port, client_mods, server_mods, logs):
+        # Read stdout
+        line = process.stdout.readline()
+        if line:
+            output_queue.put((instance_name, "stdout", line.decode().strip()))
+        
+        # Read stderr
+        line = process.stderr.readline()
+        if line:
+            output_queue.put((instance_name, "stderr", line.decode().strip()))
+        
+        # Prevent CPU hogging
+        time.sleep(0.1)
+
+# Function to process output from the queue
+def process_output(output_queue):
+    while True:
+        try:
+            instance_name, stream, line = output_queue.get(timeout=1)
+            if stream == "stdout":
+                log.info(f"[{instance_name}] {line}")
+            else:
+                log.warning(f"[{instance_name}] ERROR: {line}")
+            output_queue.task_done()
+        except Exception:
+            # No output available or queue is empty
+            time.sleep(0.1)
+
+# start instance with threading
+def start_server(app_path, instance, port, steam_query_port, client_mods, server_mods, logs, output_queue):
     instance_path = os.path.join(app_path, "servers", instance)
-    # processes_toml_path = os.path.join(app_path, "processes.toml")
-    # # create a processes.toml if it doesnt already exist
-    # if os.path.exists(processes_toml_path) is not True:
-    #     with open(processes_toml_path, "w") as f:
-    #         f.write()
     
-    # TODO..?: check processes toml for existing processes while dman is running elsewhere
-
-    args = [
-        os.path.join(instance_path, "DayZServer"),
-        "-autoinit",
-        "-steamquery",
-        f"-config={os.path.join(instance_path, 'serverDZ.cfg')}",
-        f"-port={port}",
-        f"-BEpath={os.path.join(instance_path, 'battleye')}",
-        f"-profiles={os.path.join(instance_path, 'profiles')}",
-        f"-mod={client_mods}" if client_mods else "",
-        f"-servermod={server_mods}" if server_mods else "",
-        " " + logs,
-        "-freezecheck",
-    ]
-
-    process = await asyncio.create_subprocess_exec(
-        *args,
+    # Build command arguments, filtering out empty ones
+    args = [os.path.join(instance_path, "DayZServer")]
+    
+    # Add basic arguments
+    args.extend(["-autoinit", "-steamquery"])
+    
+    # Add config path
+    args.append(f"-config={os.path.join(instance_path, 'serverDZ.cfg')}")
+    
+    # Make sure we specify both main port and steam query port (port+1)
+    args.append(f"-port={port}")
+    args.append(f"-steamQueryPort={steam_query_port}")  # Add explicit query port
+    
+    # Add other paths
+    args.append(f"-BEpath={os.path.join(instance_path, 'battleye')}")
+    args.append(f"-profiles={os.path.join(instance_path, 'profiles')}")
+    
+    # Add mods if specified
+    if client_mods:
+        args.append(f"-mod={client_mods}")
+    
+    if server_mods:
+        args.append(f"-servermod={server_mods}")
+    
+    # Add logs and freezecheck
+    if logs:
+        args.append(logs)
+    
+    args.append("-freezecheck")
+    
+    log.debug(f"Starting server {instance} with command: {' '.join(args)}")
+    
+    # Start the process with stdout and stderr piping
+    process = subprocess.Popen(
+        args,
         cwd=instance_path,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=1,  # Line buffered
+        universal_newlines=False  # Keep as bytes for binary output
     )
-
-    # Store PID and process object
-    server_info = {"instance": instance, "pid": process.pid, "process": process, "port": port}
-
-    # Start monitoring task
-    asyncio.create_task(monitor_process(process))
-
-    return server_info
+    
+    # Create a thread to read the output
+    output_thread = threading.Thread(
+        target=read_output,
+        args=(process, instance, output_queue),
+        daemon=True
+    )
+    output_thread.start()
+    
+    return {
+        "instance": instance,
+        "process": process,
+        "pid": process.pid,
+        "port": port,
+        "thread": output_thread
+    }
 
 
 # monitor instance
@@ -592,7 +634,7 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
 
 
 # lets go
-async def main():
+def main():
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
     default_dman_config_path = os.path.join(
@@ -670,9 +712,6 @@ async def main():
         )
         exit()
 
-    mod_dict = validate_workshop_mods(username, server_configs, app_path)
-    log.debug(f"mod_dict: {mod_dict}")
-
     try:
         mod_dict = validate_workshop_mods(username, server_configs, app_path)
         log.debug(f"mod_dict: {mod_dict}")
@@ -680,113 +719,177 @@ async def main():
         log.error(f"Error validating workshop mods: {e}")
         mod_dict = {}  # Use empty dict if validation fails
 
+    # Create output queue and start output processing thread
+    output_queue = Queue()
+    output_processor = threading.Thread(
+        target=process_output,
+        args=(output_queue,),
+        daemon=True
+    )
+    output_processor.start()
+
     # this is where we store server information and the actual processes
     servers = {}
-    processes = []
+    server_processes = []
 
-    # # initiate configurations with server.tomls
-    # for id, instance in enumerate(active_instances):
-    #     server_config = server_configs[id]
-
-    #     server_info = server_config["server"]["info"]
-    #     port = server_info["port"]
-    #     # webhook = server_info["discord_webhook"]
-    #     client_mods = server_info["client_mods"]
-    #     server_mods = server_info["server_mods"]
-    #     logs = server_info["logs"]
-
-    #     instance_path = os.path.join(app_path, "servers", instance)
-    #     servers[instance] = {
-    #         "instance_path": instance_path,
-    #         "port": port,
-    #         "client_mods": client_mods,
-    #         "server_mods": server_mods,
-    #         "logs": logs,
-    #     }
-
-    #     if client_mods or server_mods:
-    #         client_mods, server_mods = import_mods(
-    #             app_path, instance, client_mods, server_mods, mod_dict
-    #         )
-    #         with open(
-    #             os.path.join(
-    #                 app_path,
-    #                 "servers",
-    #                 instance,
-    #                 "server.toml",
-    #             ),
-    #             "w",
-    #         ) as f:
-    #             server_config["server"]["info"]["client_mods"] = client_mods
-    #             server_config["server"]["info"]["server_mods"] = server_mods
-    #             toml.dump(server_config, f)
+    # Make sure each server has a unique port pair (main port and query port)
+    used_ports = set()
 
     # initiate configurations with server.tomls
-    for id, instance in enumerate(active_instances):
+    for instance in active_instances:
         # Find the corresponding server config
-        # This assumes active_instances is a subset of instances
         instance_index = instances.index(instance)
         server_config = server_configs[instance_index]
 
         server_info = server_config["server"]["info"]
         port = server_info["port"]
+        
+        # # Make sure ports don't conflict
+        # if port in used_ports:
+        #     log.warning(f"Port conflict detected for {instance} on port {port}, adjusting...")
+        #     # Find next available port
+        #     test_port = int(port)
+        #     while test_port in used_ports or (test_port + 1) in used_ports:
+        #         test_port += 10  # Increment by 10 to avoid conflicts
+            
+        #     port = str(test_port)
+        #     log.info(f"Adjusted port for {instance} to {port}")
+            
+        #     # Update the config
+        #     server_config["server"]["info"]["port"] = port
+            
+        #     # Save the updated config
+        #     with open(os.path.join(app_path, "servers", instance, "server.toml"), "w") as f:
+        #         toml.dump(server_config, f)
+        
+        # # Mark ports as used
+        # used_ports.add(int(port))
+        # # used_ports.add(int(port) + 1)  # Also mark query port as used
+        
+        steam_query_port = server_info["steam_query_port"]
+
         client_mods = server_info["client_mods"]
         server_mods = server_info["server_mods"]
         logs = server_info["logs"]
 
-        instance_path = os.path.join(app_path, "servers", instance)
+        # Process and update mods
+        if client_mods or server_mods:
+            try:
+                updated_client_mods, updated_server_mods = import_mods(
+                    app_path, instance, client_mods, server_mods, mod_dict
+                )
+                
+                # Update the server_config in memory
+                server_config["server"]["info"]["client_mods"] = updated_client_mods
+                server_config["server"]["info"]["server_mods"] = updated_server_mods
+                
+                # Update the config file
+                with open(os.path.join(app_path, "servers", instance, "server.toml"), "w") as f:
+                    toml.dump(server_config, f)
+                
+                # Use updated mod strings
+                client_mods = updated_client_mods
+                server_mods = updated_server_mods
+            except Exception as e:
+                log.error(f"Error importing mods for {instance}: {e}")
 
-        # First collect all the server information
+        # Store server info
         servers[instance] = {
             "app_path": app_path,
             "instance": instance,
             "port": port,
+            "steam_query_port": steam_query_port,
             "client_mods": client_mods,
             "server_mods": server_mods,
             "logs": logs,
         }
 
-        # Process and update mods separately
-        if client_mods or server_mods:
-            updated_client_mods, updated_server_mods = import_mods(
-                app_path, instance, client_mods, server_mods, mod_dict
+    log.debug(f"Prepared servers: {servers}")
+
+    # Start all server processes
+    for instance, args in servers.items():
+        try:
+            log.info(f"Starting server {instance} on port {args['port']}...")
+            
+            # Enforce a short delay between server starts to reduce resource contention
+            if server_processes:  # If we've already started at least one server
+                time.sleep(5)  # Wait 5 seconds between server starts
+            
+            process_info = start_server(
+                args["app_path"],
+                args["instance"],
+                args["port"],
+                args["steam_query_port"],
+                args["client_mods"],
+                args["server_mods"],
+                args["logs"],
+                output_queue
             )
+            
+            server_processes.append(process_info)
+            log.info(f"Server {instance} started with PID {process_info['pid']}")
+            
+        except Exception as e:
+            log.error(f"Failed to start server {instance}: {e}")
 
-            # Update the server_config in memory
-            server_config["server"]["info"]["client_mods"] = updated_client_mods
-            server_config["server"]["info"]["server_mods"] = updated_server_mods
+    # Monitor processes
+    try:
+        while True:
+            all_alive = True
+            for server_info in server_processes:
+                instance = server_info["instance"]
+                process = server_info["process"]
+                
+                # Check if process is still running
+                if process.poll() is not None:
+                    log.warning(f"Server {instance} (PID {server_info['pid']}) has terminated with code {process.returncode}")
+                    all_alive = False
+                    
+                    # Optionally restart the server here if needed
+                    # For now, just log the termination
+            
+            if not all_alive:
+                log.warning("One or more servers have terminated")
+                # Option 1: Break the loop and exit when any server terminates
+                # break
+                
+                # Option 2: Continue running remaining servers
+                # pass
+                
+                # For this example, we'll continue running
+            
+            # Sleep to prevent CPU hogging
+            time.sleep(30)
+            
+    except KeyboardInterrupt:
+        log.info("Shutdown requested...")
+        
+        # Attempt graceful shutdown of all servers
+        for server_info in server_processes:
+            instance = server_info["instance"]
+            process = server_info["process"]
+            
+            if process.poll() is None:  # If process is still running
+                log.info(f"Terminating server {instance} (PID {server_info['pid']})...")
+                try:
+                    process.terminate()
+                    # Wait up to 10 seconds for graceful termination
+                    for _ in range(10):
+                        if process.poll() is not None:
+                            break
+                        time.sleep(1)
+                    
+                    # Force kill if still running
+                    if process.poll() is None:
+                        log.warning(f"Server {instance} did not terminate gracefully, killing...")
+                        process.kill()
+                except Exception as e:
+                    log.error(f"Error shutting down server {instance}: {e}")
+        
+        log.info("All servers stopped")
+    
+    # Return exit code
+    return 0
 
-            # Update the config file
-            with open(
-                os.path.join(app_path, "servers", instance, "server.toml"),
-                "w",
-            ) as f:
-                toml.dump(server_config, f)
-
-            # Update the servers dictionary with new mod values
-            servers[instance]["client_mods"] = updated_client_mods
-            servers[instance]["server_mods"] = updated_server_mods
-
-    log.debug(f"servers: {servers}")
-
-    # Prepare the server processes
-    for instance, arg in servers.items():
-        processes.append(
-            start_server(
-                arg["app_path"],
-                arg["instance"],
-                arg["port"],
-                arg["client_mods"],
-                arg["server_mods"],
-                arg["logs"],
-            )
-        )
-
-    server_instances = await asyncio.gather(*processes)
-    log.debug(server_instances)
-
-    while True:
-        await asyncio.sleep(60)
-
-
-asyncio.run(main())
+if __name__ == "__main__":
+    main()
