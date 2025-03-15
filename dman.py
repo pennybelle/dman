@@ -104,8 +104,13 @@ def validate_server_files(username, app_path, server_name):
 # start instance
 async def start_server(app_path, instance, port, client_mods, server_mods, logs):
     instance_path = os.path.join(app_path, "servers", instance)
-    # create a processes.toml if it doesnt already exist
-    # if 
+    # processes_toml_path = os.path.join(app_path, "processes.toml")
+    # # create a processes.toml if it doesnt already exist
+    # if os.path.exists(processes_toml_path) is not True:
+    #     with open(processes_toml_path, "w") as f:
+    #         f.write()
+    
+    # TODO..?: check processes toml for existing processes while dman is running elsewhere
 
     args = [
         os.path.join(instance_path, "DayZServer"),
@@ -129,7 +134,7 @@ async def start_server(app_path, instance, port, client_mods, server_mods, logs)
     )
 
     # Store PID and process object
-    server_info = {"pid": process.pid, "process": process, "port": port}
+    server_info = {"instance": instance, "pid": process.pid, "process": process, "port": port}
 
     # Start monitoring task
     asyncio.create_task(monitor_process(process))
@@ -239,7 +244,8 @@ def validate_workshop_mods(username, server_configs, app_path):
     os.makedirs(mod_templates_path, exist_ok=True)
 
     # dictionary to store mod_id -> mod_name mappings
-    mod_dict = {}
+    workshop_mods_by_id = {}
+    workshop_mods_by_name = {}
 
     # dictionary to track mod names that we already know
     known_mod_names = {}
@@ -274,7 +280,8 @@ def validate_workshop_mods(username, server_configs, app_path):
                 except Exception as e:
                     log.warning(f"Error reading meta.cpp for mod {mod_id}: {e}")
 
-            mod_dict[mod_id] = name
+            workshop_mods_by_id[mod_id] = name
+            workshop_mods_by_name[name] = mod_id
             known_mod_names[name] = mod_id
 
     # parse both mod IDs and mod names from configs
@@ -310,7 +317,7 @@ def validate_workshop_mods(username, server_configs, app_path):
             if not os.path.exists(os.path.join(mod_templates_path, mod_id)):
                 mods_to_download.add(mod_id)
 
-    log.debug(f"mods to download: {mods_to_download}")
+    log.debug(f"mods to download: {list(mods_to_download)}")
 
     # download missing mods one at a time with timeout protection
     if mods_to_download:
@@ -400,10 +407,11 @@ def validate_workshop_mods(username, server_configs, app_path):
             except Exception as e:
                 log.warning(f"Failed to parse meta.cpp for mod {mod_id}: {e}")
 
-        mod_dict[mod_id] = name
+        workshop_mods_by_id[mod_id] = name
+        workshop_mods_by_name[name] = mod_id
         known_mod_names[name] = mod_id
 
-    return mod_dict
+    return workshop_mods_by_id
 
 
 # parse mod string to extract ids and names
@@ -429,13 +437,13 @@ def process_mod_string(mod_string, all_mod_ids, all_mod_names, known_mod_names):
 
 
 # copy mods to server directories and update configs
-def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
+def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_id):
     """
     copy mods to server directories and update config strings
     with mod names instead of IDs
     """
     # create reverse lookup from mod name to mod ID
-    name_to_id = {name: mod_id for mod_id, name in mod_dict.items()}
+    name_to_id = {name: mod_id for mod_id, name in workshop_mods_by_id.items()}
 
     instance_path = os.path.join(app_path, "servers", instance)
 
@@ -467,8 +475,8 @@ def import_mods(app_path, instance, client_mods, server_mods, mod_dict):
         if mod.isdigit() and len(mod) == 10:
             # it's a mod ID, get its name
             mod_id = mod
-            if mod in mod_dict:
-                mod_name = mod_dict[mod]
+            if mod in workshop_mods_by_id:
+                mod_name = workshop_mods_by_id[mod]
             else:
                 log.warning(f"unknown mod ID: {mod}")
                 return mod  # return original if we don't know what it is
