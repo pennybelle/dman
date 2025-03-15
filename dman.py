@@ -102,7 +102,11 @@ def validate_server_files(username, app_path, server_name):
 
 
 # start instance
-async def start_server(instance_path, port, client_mods, server_mods, logs):
+async def start_server(app_path, instance, port, client_mods, server_mods, logs):
+    instance_path = os.path.join(app_path, "servers", instance)
+    # create a processes.toml if it doesnt already exist
+    # if 
+
     args = [
         os.path.join(instance_path, "DayZServer"),
         "-autoinit",
@@ -726,7 +730,8 @@ async def main():
 
         # First collect all the server information
         servers[instance] = {
-            "instance_path": instance_path,
+            "app_path": app_path,
+            "instance": instance,
             "port": port,
             "client_mods": client_mods,
             "server_mods": server_mods,
@@ -760,7 +765,8 @@ async def main():
     for instance, arg in servers.items():
         processes.append(
             start_server(
-                arg["instance_path"],
+                arg["app_path"],
+                arg["instance"],
                 arg["port"],
                 arg["client_mods"],
                 arg["server_mods"],
