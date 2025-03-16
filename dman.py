@@ -1019,7 +1019,7 @@ def main():
     
     # Allow servers some time to initialize fully before checking visibility
     # wait time is dependent on mod total because more mods = longer server load time
-    wait_time = 60 * (mod_total / 10)
+    wait_time = 60 * (mod_total // 20) if mod_total > 0 else 60
     log.debug(f"mod_total: {mod_total}")
     log.info(f"Waiting {wait_time} seconds for servers to fully initialize...")
     time.sleep(wait_time)
