@@ -3,10 +3,10 @@ import subprocess
 import logging
 import shutil
 import time
-import toml
 import threading
 import socket
 import struct
+import toml
 from queue import Queue
 from subprocess import Popen, PIPE
 from shutil import copyfile, copytree
@@ -124,7 +124,7 @@ def process_output(output_queue):
             time.sleep(0.1)
 
 # start instance with threading
-def start_server(app_path, instance, port, steam_query_port, client_mods, server_mods, logs, output_queue):
+def start_server(app_path, instance, port, client_mods, server_mods, logs, output_queue):
     instance_path = os.path.join(app_path, "servers", instance)
     
     # Build command arguments, filtering out empty ones
@@ -138,7 +138,7 @@ def start_server(app_path, instance, port, steam_query_port, client_mods, server
     
     # Make sure we specify both main port and steam query port (port+1)
     args.append(f"-port={port}")
-    args.append(f"-steamQueryPort={steam_query_port}")  # Add explicit query port
+    # args.append(f"-steamQueryPort={steam_query_port}")  # Add explicit query port
     
     # Add other paths
     args.append(f"-BEpath={os.path.join(instance_path, 'battleye')}")
@@ -382,9 +382,9 @@ def validate_workshop_mods(username, server_configs, app_path):
                 # Create a command list for better security and control
                 cmd = [
                     "./steamcmd.sh",
-                    f"+login",
+                    "+login",
                     f"{username}",
-                    f"+workshop_download_item",
+                    "+workshop_download_item",
                     "221100",
                     f"{mod_id}",
                     "+quit",
@@ -773,7 +773,7 @@ class A2SQueryException(Exception):
         finally:
             try:
                 sock.close()
-            except:
+            except Exception:
                 pass
 
 
@@ -794,8 +794,9 @@ def check_server_visibility(servers, retry_count=3, retry_delay=5):
     log.info("Checking server visibility...")
     
     for instance, server_info in servers.items():
-        port = int(server_info['steam_query_port'])
+        port = int(server_info.get(server_info['port'], server_info['steam_query_port']))
         ip = '127.0.0.1'  # Assuming local server, use actual IP for remote servers
+        # ip = public_ip.get()
         
         log.info(f"Checking server {instance} at {ip}:{port}")
         
@@ -803,7 +804,7 @@ def check_server_visibility(servers, retry_count=3, retry_delay=5):
         for attempt in range(retry_count):
             query_result = A2SQueryException.a2s_info_query(ip, port)
             
-            if query_result.get('response') == True:
+            if query_result.get('response') is True:
                 # Server is visible
                 results[instance] = {
                     'visible': True,
@@ -941,29 +942,13 @@ def main():
         server_info = server_config["server"]["info"]
         port = server_info["port"]
         
-        # # Make sure ports don't conflict
-        # if port in used_ports:
-        #     log.warning(f"Port conflict detected for {instance} on port {port}, adjusting...")
-        #     # Find next available port
-        #     test_port = int(port)
-        #     while test_port in used_ports or (test_port + 1) in used_ports:
-        #         test_port += 10  # Increment by 10 to avoid conflicts
-            
-        #     port = str(test_port)
-        #     log.info(f"Adjusted port for {instance} to {port}")
-            
-        #     # Update the config
-        #     server_config["server"]["info"]["port"] = port
-            
-        #     # Save the updated config
-        #     with open(os.path.join(app_path, "servers", instance, "server.toml"), "w") as f:
-        #         toml.dump(server_config, f)
+        # Make sure ports don't conflict
+        if port in used_ports:
+            log.warning(f"Port conflict detected for {instance} on port {port}, please adjust in server.toml")
+            exit()
         
-        # # Mark ports as used
-        # used_ports.add(int(port))
-        # # used_ports.add(int(port) + 1)  # Also mark query port as used
-        
-        steam_query_port = server_info["steam_query_port"]
+        # Mark ports as used
+        used_ports.add(int(port))
 
         client_mods = server_info["client_mods"]
         server_mods = server_info["server_mods"]
@@ -995,13 +980,15 @@ def main():
             "app_path": app_path,
             "instance": instance,
             "port": port,
-            "steam_query_port": steam_query_port,
             "client_mods": client_mods,
             "server_mods": server_mods,
             "logs": logs,
         }
 
     log.debug(f"Prepared servers: {servers}")
+
+    # for calculating wait timer
+    mod_total = 0
 
     # Start all server processes
     for instance, args in servers.items():
@@ -1016,7 +1003,6 @@ def main():
                 args["app_path"],
                 args["instance"],
                 args["port"],
-                args["steam_query_port"],
                 args["client_mods"],
                 args["server_mods"],
                 args["logs"],
@@ -1025,25 +1011,18 @@ def main():
             
             server_processes.append(process_info)
             log.info(f"Server {instance} started with PID {process_info['pid']}")
+
+            mod_total += len(args["client_mods"].replace("@", "").split(";")) + len(args["server_mods"].replace("@", "").split(";"))
             
         except Exception as e:
             log.error(f"Failed to start server {instance}: {e}")
     
     # Allow servers some time to initialize fully before checking visibility
-    log.info("Waiting 60 seconds for servers to fully initialize...")
-    time.sleep(60)
-    
-    # Check server visibility
-    visibility_results = check_server_visibility(servers)
-    
-    # Check if any servers are not visible
-    invisible_servers = [name for name, result in visibility_results.items() if not result['visible']]
-    if invisible_servers:
-        log.warning(f"The following servers are not visible to clients: {', '.join(invisible_servers)}")
-        log.warning("Please check their configuration, especially port settings and firewall rules.")
-    else:
-        log.info("All servers are visible to clients. DayZ server browser should display them correctly.")
-
+    # wait time is dependent on mod total because more mods = longer server load time
+    wait_time = 60 * (mod_total / 10)
+    log.debug(f"mod_total: {mod_total}")
+    log.info(f"Waiting {wait_time} seconds for servers to fully initialize...")
+    time.sleep(wait_time)
 
     # Monitor processes
     try:
