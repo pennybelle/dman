@@ -38,5 +38,10 @@ def setup_logger(level, stream_logs) -> None:
         stream_handler.setLevel(level)
         # stream_handler.terminator = ""
         handlers.append(stream_handler)
+    else:
+        file_handler = logging.FileHandler("console.log")
+        file_handler.setFormatter(log_formatter)
+        file_handler.setLevel(level)
+        handlers.append(file_handler)
 
     logging.basicConfig(level=level, handlers=handlers)

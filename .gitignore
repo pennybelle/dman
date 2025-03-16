@@ -4,8 +4,8 @@ __pycache__/
 legacy/
 app/
 
+*.log
 *.code-workspace
-
 *_backup*
 
 dman.toml
