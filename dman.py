@@ -18,6 +18,7 @@ from __logger__ import setup_logger
 log = logging.getLogger(__name__)
 setup_logger(level=10, stream_logs=True)
 
+
 # install steamcmd if needed
 def check_steamcmd(steamcmd):
     link = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
@@ -31,6 +32,7 @@ def check_steamcmd(steamcmd):
             stdout=PIPE,
             stderr=PIPE,
         ).communicate()
+
 
 # initiate servers directory and return list of sub-directories
 def check_servers(servers_path):
@@ -52,6 +54,7 @@ def check_servers(servers_path):
         instances = []  # default empty result
 
     return instances
+
 
 #  initiate server files and default config if needed
 def validate_server_files(username, app_path, server_name):
@@ -88,26 +91,30 @@ def validate_server_files(username, app_path, server_name):
 
     return server_name, needs_config_edit
 
+
 # Function to read process output
 def read_output(process, instance_name, output_queue):
     while True:
         if process.poll() is not None:
             # Process has terminated
-            log.info(f"Server {instance_name} process terminated with code {process.returncode}")
+            log.info(
+                f"Server {instance_name} process terminated with code {process.returncode}"
+            )
             break
 
         # Read stdout
         line = process.stdout.readline()
         if line:
             output_queue.put((instance_name, "stdout", line.decode().strip()))
-        
+
         # Read stderr
         line = process.stderr.readline()
         if line:
             output_queue.put((instance_name, "stderr", line.decode().strip()))
-        
+
         # Prevent CPU hogging
         time.sleep(0.1)
+
 
 # Function to process output from the queue
 def process_output(output_queue):
@@ -123,42 +130,45 @@ def process_output(output_queue):
             # No output available or queue is empty
             time.sleep(0.1)
 
+
 # start instance with threading
-def start_server(app_path, instance, port, client_mods, server_mods, logs, output_queue):
+def start_server(
+    app_path, instance, port, client_mods, server_mods, logs, output_queue
+):
     instance_path = os.path.join(app_path, "servers", instance)
-    
+
     # Build command arguments, filtering out empty ones
     args = [os.path.join(instance_path, "DayZServer")]
-    
+
     # Add basic arguments
     args.extend(["-autoinit", "-steamquery"])
-    
+
     # Add config path
     args.append(f"-config={os.path.join(instance_path, 'serverDZ.cfg')}")
-    
+
     # Make sure we specify both main port and steam query port (port+1)
     args.append(f"-port={port}")
     # args.append(f"-steamQueryPort={steam_query_port}")  # Add explicit query port
-    
+
     # Add other paths
     args.append(f"-BEpath={os.path.join(instance_path, 'battleye')}")
     args.append(f"-profiles={os.path.join(instance_path, 'profiles')}")
-    
+
     # Add mods if specified
     if client_mods:
         args.append(f"-mod={client_mods}")
-    
+
     if server_mods:
         args.append(f"-servermod={server_mods}")
-    
+
     # Add logs and freezecheck
     if logs:
         args.append(logs)
-    
+
     args.append("-freezecheck")
-    
+
     log.debug(f"Starting server {instance} with command: {' '.join(args)}")
-    
+
     # Start the process with stdout and stderr piping
     process = subprocess.Popen(
         args,
@@ -166,23 +176,21 @@ def start_server(app_path, instance, port, client_mods, server_mods, logs, outpu
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         bufsize=1,  # Line buffered
-        universal_newlines=False  # Keep as bytes for binary output
+        universal_newlines=False,  # Keep as bytes for binary output
     )
-    
+
     # Create a thread to read the output
     output_thread = threading.Thread(
-        target=read_output,
-        args=(process, instance, output_queue),
-        daemon=True
+        target=read_output, args=(process, instance, output_queue), daemon=True
     )
     output_thread.start()
-    
+
     return {
         "instance": instance,
         "process": process,
         "pid": process.pid,
         "port": port,
-        "thread": output_thread
+        "thread": output_thread,
     }
 
 
@@ -634,142 +642,151 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
 
     return client_mods, server_mods
 
+
 class A2SQueryException(Exception):
     """Exception raised for errors in the A2S query."""
+
     pass
+
     def a2s_info_query(ip, port, timeout=5.0):
         """
         Performs a Source Engine A2S_INFO query to check if a server is visible.
-        
+
         Args:
             ip: Server IP address
             port: steam query port
             timeout: Query timeout in seconds
-            
+
         Returns:
             dict: Server information if visible, None otherwise
         """
         # A2S_INFO request packet
-        request = b'\xFF\xFF\xFF\xFFTSource Engine Query\x00'
-        
+        request = b"\xff\xff\xff\xffTSource Engine Query\x00"
+
         try:
             # Create UDP socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.settimeout(timeout)
-            
+
             # Send request
             sock.sendto(request, (ip, port))
-            
+
             # Receive response
             response = sock.recv(4096)
-            
+
             # Check for split packet (common for Source servers)
-            if response[0:4] == b'\xFF\xFF\xFF\xFF':
+            if response[0:4] == b"\xff\xff\xff\xff":
                 # Simple packet, continue processing
                 response = response[4:]
-            elif response[0:4] == b'\xFE\xFF\xFF\xFF':
+            elif response[0:4] == b"\xfe\xff\xff\xff":
                 # Split packet, not handling these for simplicity
                 # More complex handling would reassemble multi-packet responses
                 raise A2SQueryException("Split packet responses not supported")
             else:
                 raise A2SQueryException("Invalid response header")
-            
+
             # Parse response
             if response[0] != 0x49:  # 'I' response header
                 raise A2SQueryException(f"Invalid response type: {response[0]}")
-                
+
             # Extract server information
             protocol = response[1]
-            
+
             # Extract server name (null-terminated string)
-            name_end = response.find(b'\x00', 2)
+            name_end = response.find(b"\x00", 2)
             if name_end == -1:
                 raise A2SQueryException("Malformed response - cannot find server name")
-            name = response[2:name_end].decode('utf-8', errors='replace')
-            
+            name = response[2:name_end].decode("utf-8", errors="replace")
+
             # Extract map name
             map_start = name_end + 1
-            map_end = response.find(b'\x00', map_start)
+            map_end = response.find(b"\x00", map_start)
             if map_end == -1:
                 raise A2SQueryException("Malformed response - cannot find map name")
-            map_name = response[map_start:map_end].decode('utf-8', errors='replace')
-            
+            map_name = response[map_start:map_end].decode("utf-8", errors="replace")
+
             # Extract game directory
             dir_start = map_end + 1
-            dir_end = response.find(b'\x00', dir_start)
+            dir_end = response.find(b"\x00", dir_start)
             if dir_end == -1:
-                raise A2SQueryException("Malformed response - cannot find game directory")
-            game_dir = response[dir_start:dir_end].decode('utf-8', errors='replace')
-            
+                raise A2SQueryException(
+                    "Malformed response - cannot find game directory"
+                )
+            game_dir = response[dir_start:dir_end].decode("utf-8", errors="replace")
+
             # Extract game description
             desc_start = dir_end + 1
-            desc_end = response.find(b'\x00', desc_start)
+            desc_end = response.find(b"\x00", desc_start)
             if desc_end == -1:
-                raise A2SQueryException("Malformed response - cannot find game description")
-            description = response[desc_start:desc_end].decode('utf-8', errors='replace')
-            
+                raise A2SQueryException(
+                    "Malformed response - cannot find game description"
+                )
+            description = response[desc_start:desc_end].decode(
+                "utf-8", errors="replace"
+            )
+
             # Move to the bytes after description
             current_pos = desc_end + 1
-            
+
             # Get remaining info - app ID and player info
             # Note: This assumes the response format hasn't changed, which can happen
             if len(response) >= current_pos + 6:
-                app_id = struct.unpack('<H', response[current_pos:current_pos+2])[0]
+                app_id = struct.unpack("<H", response[current_pos : current_pos + 2])[0]
                 current_pos += 2
-                
+
                 players = response[current_pos]
                 current_pos += 1
-                
+
                 max_players = response[current_pos]
                 current_pos += 1
-                
+
                 bots = response[current_pos]
                 current_pos += 1
-                
+
                 server_type = chr(response[current_pos])
                 current_pos += 1
-                
+
                 # Parse environment and visibility
                 if current_pos < len(response):
                     environment = chr(response[current_pos])
                     current_pos += 1
                 else:
-                    environment = '?'
-                
+                    environment = "?"
+
                 if current_pos < len(response):
                     visibility = response[current_pos]
                     current_pos += 1
                 else:
                     visibility = -1
-                    
+
                 # Additional fields like VAC status may be available but not parsed here
-            
+
             server_info = {
-                'protocol': protocol,
-                'name': name,
-                'map': map_name,
-                'directory': game_dir,
-                'description': description,
-                'app_id': app_id if 'app_id' in locals() else None,
-                'players': players if 'players' in locals() else None,
-                'max_players': max_players if 'max_players' in locals() else None,
-                'bots': bots if 'bots' in locals() else None,
-                'server_type': server_type if 'server_type' in locals() else None,
-                'environment': environment if 'environment' in locals() else None,
-                'visibility': visibility if 'visibility' in locals() else None,
-                'response': True
+                "protocol": protocol,
+                "name": name,
+                "map": map_name,
+                "directory": game_dir,
+                "description": description,
+                "app_id": app_id if "app_id" in locals() else None,
+                "players": players if "players" in locals() else None,
+                "max_players": max_players if "max_players" in locals() else None,
+                "bots": bots if "bots" in locals() else None,
+                "server_type": server_type if "server_type" in locals() else None,
+                "environment": environment if "environment" in locals() else None,
+                "visibility": visibility if "visibility" in locals() else None,
+                "response": True,
             }
-            
+
             return server_info
-            
+
         except socket.timeout:
-            return {'response': False, 'reason': 'Timeout'}
+            return {"response": False, "reason": "Timeout"}
         except socket.error as e:
-            return {'response': False, 'reason': f'Socket error: {e}'}
+            return {"response": False, "reason": f"Socket error: {e}"}
         except A2SQueryException as e:
-            return {'response': False, 'reason': str(e)}
+            return {"response": False, "reason": str(e)}
         except Exception as e:
-            return {'response': False, 'reason': f'Unknown error: {e}'}
+            return {"response": False, "reason": f"Unknown error: {e}"}
         finally:
             try:
                 sock.close()
@@ -780,54 +797,62 @@ class A2SQueryException(Exception):
 def check_server_visibility(servers, retry_count=3, retry_delay=5):
     """
     Checks visibility of all running DayZ servers.
-    
+
     Args:
         servers: Dictionary of server information
         retry_count: Number of times to retry failed checks
         retry_delay: Delay between retries in seconds
-        
+
     Returns:
         Dict of server names with visibility status
     """
     results = {}
-    
+
     log.info("Checking server visibility...")
-    
+
     for instance, server_info in servers.items():
-        port = int(server_info.get(server_info['port'], server_info['steam_query_port']))
-        ip = '127.0.0.1'  # Assuming local server, use actual IP for remote servers
+        port = int(
+            server_info.get(server_info["port"], server_info["steam_query_port"])
+        )
+        ip = "127.0.0.1"  # Assuming local server, use actual IP for remote servers
         # ip = public_ip.get()
-        
+
         log.info(f"Checking server {instance} at {ip}:{port}")
-        
+
         # Try multiple times in case of initial issues
         for attempt in range(retry_count):
             query_result = A2SQueryException.a2s_info_query(ip, port)
-            
-            if query_result.get('response') is True:
+
+            if query_result.get("response") is True:
                 # Server is visible
                 results[instance] = {
-                    'visible': True,
-                    'name': query_result.get('name', 'Unknown'),
-                    'players': query_result.get('players', '?'),
-                    'max_players': query_result.get('max_players', '?'),
-                    'port': port
+                    "visible": True,
+                    "name": query_result.get("name", "Unknown"),
+                    "players": query_result.get("players", "?"),
+                    "max_players": query_result.get("max_players", "?"),
+                    "port": port,
                 }
-                log.info(f"✓ Server {instance} is visible as '{query_result.get('name')}' with {query_result.get('players', '?')}/{query_result.get('max_players', '?')} players")
+                log.info(
+                    f"✓ Server {instance} is visible as '{query_result.get('name')}' with {query_result.get('players', '?')}/{query_result.get('max_players', '?')} players"
+                )
                 break
             else:
                 if attempt < retry_count - 1:
-                    log.warning(f"× Server {instance} check failed ({query_result.get('reason')}), retrying in {retry_delay}s...")
+                    log.warning(
+                        f"× Server {instance} check failed ({query_result.get('reason')}), retrying in {retry_delay}s..."
+                    )
                     time.sleep(retry_delay)
                 else:
                     # All retries failed
                     results[instance] = {
-                        'visible': False,
-                        'reason': query_result.get('reason', 'Unknown error'),
-                        'port': port
+                        "visible": False,
+                        "reason": query_result.get("reason", "Unknown error"),
+                        "port": port,
                     }
-                    log.error(f"× Server {instance} is NOT VISIBLE: {query_result.get('reason', 'Unknown error')}")
-    
+                    log.error(
+                        f"× Server {instance} is NOT VISIBLE: {query_result.get('reason', 'Unknown error')}"
+                    )
+
     return results
 
 
@@ -920,9 +945,7 @@ def main():
     # Create output queue and start output processing thread
     output_queue = Queue()
     output_processor = threading.Thread(
-        target=process_output,
-        args=(output_queue,),
-        daemon=True
+        target=process_output, args=(output_queue,), daemon=True
     )
     output_processor.start()
 
@@ -941,12 +964,14 @@ def main():
 
         server_info = server_config["server"]["info"]
         port = server_info["port"]
-        
+
         # Make sure ports don't conflict
         if port in used_ports:
-            log.warning(f"Port conflict detected for {instance} on port {port}, please adjust in server.toml")
+            log.warning(
+                f"Port conflict detected for {instance} on port {port}, please adjust in server.toml"
+            )
             exit()
-        
+
         # Mark ports as used
         used_ports.add(int(port))
 
@@ -960,15 +985,17 @@ def main():
                 updated_client_mods, updated_server_mods = import_mods(
                     app_path, instance, client_mods, server_mods, mod_dict
                 )
-                
+
                 # Update the server_config in memory
                 server_config["server"]["info"]["client_mods"] = updated_client_mods
                 server_config["server"]["info"]["server_mods"] = updated_server_mods
-                
+
                 # Update the config file
-                with open(os.path.join(app_path, "servers", instance, "server.toml"), "w") as f:
+                with open(
+                    os.path.join(app_path, "servers", instance, "server.toml"), "w"
+                ) as f:
                     toml.dump(server_config, f)
-                
+
                 # Use updated mod strings
                 client_mods = updated_client_mods
                 server_mods = updated_server_mods
@@ -994,11 +1021,11 @@ def main():
     for instance, args in servers.items():
         try:
             log.info(f"Starting server {instance} on port {args['port']}...")
-            
+
             # Enforce a short delay between server starts to reduce resource contention
             if server_processes:  # If we've already started at least one server
                 time.sleep(5)  # Wait 5 seconds between server starts
-            
+
             process_info = start_server(
                 args["app_path"],
                 args["instance"],
@@ -1006,17 +1033,19 @@ def main():
                 args["client_mods"],
                 args["server_mods"],
                 args["logs"],
-                output_queue
+                output_queue,
             )
-            
+
             server_processes.append(process_info)
             log.info(f"Server {instance} started with PID {process_info['pid']}")
 
-            mod_total += len(args["client_mods"].replace("@", "").split(";")) + len(args["server_mods"].replace("@", "").split(";"))
-            
+            mod_total += len(args["client_mods"].replace("@", "").split(";")) + len(
+                args["server_mods"].replace("@", "").split(";")
+            )
+
         except Exception as e:
             log.error(f"Failed to start server {instance}: {e}")
-    
+
     # Allow servers some time to initialize fully before checking visibility
     # wait time is dependent on mod total because more mods = longer server load time
     wait_time = 60 * (mod_total // 20) if mod_total > 0 else 60
@@ -1031,36 +1060,38 @@ def main():
             for server_info in server_processes:
                 instance = server_info["instance"]
                 process = server_info["process"]
-                
+
                 # Check if process is still running
                 if process.poll() is not None:
-                    log.warning(f"Server {instance} (PID {server_info['pid']}) has terminated with code {process.returncode}")
+                    log.warning(
+                        f"Server {instance} (PID {server_info['pid']}) has terminated with code {process.returncode}"
+                    )
                     all_alive = False
-                    
+
                     # Optionally restart the server here if needed
                     # For now, just log the termination
-            
+
             if not all_alive:
                 log.warning("One or more servers have terminated")
                 # Option 1: Break the loop and exit when any server terminates
                 # break
-                
+
                 # Option 2: Continue running remaining servers
                 # pass
-                
+
                 # For this example, we'll continue running
-            
+
             # Sleep to prevent CPU hogging
             time.sleep(30)
-            
+
     except KeyboardInterrupt:
         log.info("Shutdown requested...")
-        
+
         # Attempt graceful shutdown of all servers
         for server_info in server_processes:
             instance = server_info["instance"]
             process = server_info["process"]
-            
+
             if process.poll() is None:  # If process is still running
                 log.info(f"Terminating server {instance} (PID {server_info['pid']})...")
                 try:
@@ -1070,18 +1101,21 @@ def main():
                         if process.poll() is not None:
                             break
                         time.sleep(1)
-                    
+
                     # Force kill if still running
                     if process.poll() is None:
-                        log.warning(f"Server {instance} did not terminate gracefully, killing...")
+                        log.warning(
+                            f"Server {instance} did not terminate gracefully, killing..."
+                        )
                         process.kill()
                 except Exception as e:
                     log.error(f"Error shutting down server {instance}: {e}")
-        
+
         log.info("All servers stopped")
-    
+
     # Return exit code
     return 0
+
 
 if __name__ == "__main__":
     main()
