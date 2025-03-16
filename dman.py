@@ -12,7 +12,6 @@ from subprocess import Popen, PIPE
 from shutil import copyfile, copytree
 from sys import exit
 
-# Assuming your __logger__.py is in the same directory
 from __logger__ import setup_logger
 
 log = logging.getLogger(__name__)
