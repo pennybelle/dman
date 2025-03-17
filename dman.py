@@ -15,12 +15,14 @@ from subprocess import Popen, PIPE
 from shutil import copyfile, copytree, copy2
 from sys import exit
 from __logger__ import setup_logger
-from modules.main_menu import main_menu
+from modules.main_menu import main_menu, title_screen
 
 log = logging.getLogger(__name__)
 setup_logger(level=10, stream_logs=False)
 
 log.info("######################## STARTING FROM THE TOP ########################")
+
+title_screen()
 
 ## LEVELS ##
 # 10: DEBUG
