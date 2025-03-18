@@ -1,4 +1,9 @@
+from os import system, name
 from subprocess import check_output
+
+
+def cls():
+    system("cls" if name == "nt" else "clear")
 
 
 def get_console_size():
@@ -23,8 +28,7 @@ border_width = 1
 logo_whitespace = (w // 2 - (logo_width // 2)) - 1
 
 
-logo = rf"""
-{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
+logo = rf"""{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
 {"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
 {"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
 {"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
@@ -43,7 +47,11 @@ logo = rf"""
 
 
 def title_screen():
+    cls()
     print(logo)
+
+
+title_screen()
 
 
 #     print(rf"""┏{"━" * (w - 2)}┓
@@ -54,9 +62,6 @@ def title_screen():
 # ┃{logo_whitespace}██████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║{logo_whitespace} ┃
 # ┃{logo_whitespace}╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝{logo_whitespace} ┃
 # ┗{"━" * (w - 2)}┛""")
-
-
-# title_screen()
 
 
 def main_menu():
