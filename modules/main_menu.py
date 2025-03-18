@@ -18,23 +18,27 @@ w, h = get_console_size()
 # print(w, h)
 
 
-logo_width = 33
+logo_width = len("██████████████████████████████████") - 1
 border_width = 1
-logo_whitespace = (w // 2 - (logo_width // 2)) - (border_width * 2)
+logo_whitespace = (w // 2 - (logo_width // 2)) - 1
 
 
 logo = rf"""
-█{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}████  ███  █  █ █████   ████  █ ██{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}██    ███        ███  █  ███     █{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}█  █  ███  █  █  ██████  ███  █  █{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}█  █  ███  █  █  ████    ███  █  █{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}█  █  ███  █  █  ███  █  ███  █  █{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}██    ███  █  █  ████    ███  █  █{"█" * logo_whitespace}█
-█{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}█
+{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
+{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
+{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
+{"█" * logo_whitespace}████  ████████████████████████████{"█" * logo_whitespace}
+{"█" * logo_whitespace}████  ███  █  █ █████   ████  █ ██{"█" * logo_whitespace}
+{"█" * logo_whitespace}██    ███        ███  █  ███     █{"█" * logo_whitespace}
+{"█" * logo_whitespace}█  █  ███  █  █  ██████  ███  █  █{"█" * logo_whitespace}
+{"█" * logo_whitespace}█  █  ███  █  █  ████    ███  █  █{"█" * logo_whitespace}
+{"█" * logo_whitespace}█  █  ███  █  █  ███  █  ███  █  █{"█" * logo_whitespace}
+{"█" * logo_whitespace}██    ███  █  █  ████    ███  █  █{"█" * logo_whitespace}
+{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
+{"█" * logo_whitespace}█                                █{"█" * logo_whitespace}
+{"█" * logo_whitespace}█    open source dayz manager    █{"█" * logo_whitespace}
+{"█" * logo_whitespace}█                                █{"█" * logo_whitespace}
+{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
 """
 
 

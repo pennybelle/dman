@@ -1,3 +1,12 @@
+# this script/program is a WIP and the code isnt great
+# but i plan to put a lot into this and i'll learn as i go
+# please consider contributing to the project by opening a PR
+
+# my goal is to have a CLI-only menu-based program that can be scaled
+# to maange and run as many servers as your hardware can handle.
+# i have 4 years of experience dealing with dayz's weirdness and im hoping
+# to use that experience to make other people's lives a bit easier
+
 import os
 import re
 import struct
@@ -12,7 +21,7 @@ import toml
 
 from enum import Enum
 from subprocess import Popen, PIPE
-from shutil import copyfile, copytree, copy2
+from shutil import copyfile, copytree
 from sys import exit
 from __logger__ import setup_logger
 from modules.main_menu import main_menu, title_screen
