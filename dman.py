@@ -1268,7 +1268,11 @@ async def main():
 
     if username == "STEAM_USERNAME":
         log.info("replace STEAM_USERNAME in dman.toml")
+        print("Please change STEAM_USERNAME in dman.toml to start using dman!")
         return
+    
+    else:
+        print("Initializing...", end="", flush=True)
 
     # ensure steamcmd is installed
     check_steamcmd(steamcmd_path)
@@ -1381,6 +1385,8 @@ async def main():
             servers[instance]["server_mods"] = updated_server_mods
 
     log.debug(f"servers: {servers}")
+    print("Done")
+    print("Starting servers...", end="", flush=True)
 
     # Prepare the server processes
     for instance, arg in servers.items():
@@ -1399,13 +1405,17 @@ async def main():
     log.debug(server_instances)
 
     log.info("All servers started. Server summary:")
+    print("Done")
+    print("Servers running:")
     for server in server_instances:
         log.info(
             f"Instance: {server['instance']}, PID: {server['pid']}, Port: {server['port']}"
         )
+        print(f" - {server["instance"]}")
 
     await asyncio.sleep(90)
-    for instance in server_instances:
+
+    for server in server_instances:
         await schedule_server_restart(
             app_path=app_path,
             instance_name=server["instance"],
