@@ -19,19 +19,25 @@ import time
 import datetime
 import toml
 
-from enum import Enum
 from subprocess import Popen, PIPE
 from shutil import copyfile, copytree
 from sys import exit
 from __logger__ import setup_logger
 from modules.main_menu import main_menu, title_screen
+from modules.constants_classes import (
+    ServerState,
+    SERVERDATA_AUTH,
+    SERVERDATA_AUTH_RESPONSE,
+    SERVERDATA_EXECCOMMAND,
+    # SERVERDATA_RESPONSE_VALUE,
+)
 
 log = logging.getLogger(__name__)
 setup_logger(level=10, stream_logs=False)
 
 log.info("######################## STARTING FROM THE TOP ########################")
 
-title_screen()
+# title_screen()
 
 ## LEVELS ##
 # 10: DEBUG
@@ -48,23 +54,6 @@ title_screen()
 
 # Dictionary to track server states
 server_states = {}
-
-
-# Define server states for better status tracking
-class ServerState(Enum):
-    STARTING = "STARTING"
-    RUNNING = "RUNNING"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    STOPPED = "STOPPED"
-    CRASHED = "CRASHED"
-
-
-# RCON Constants
-SERVERDATA_AUTH = 3
-SERVERDATA_AUTH_RESPONSE = 2
-SERVERDATA_EXECCOMMAND = 2
-SERVERDATA_RESPONSE_VALUE = 0
 
 
 class RCONClient:
