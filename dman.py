@@ -37,7 +37,7 @@ setup_logger(level=10, stream_logs=False)
 
 log.info("######################## STARTING FROM THE TOP ########################")
 
-# title_screen()
+title_screen()
 
 ## LEVELS ##
 # 10: DEBUG
