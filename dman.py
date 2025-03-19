@@ -684,7 +684,7 @@ async def monitor_process(process, instance_name=None, port=None):
                 log.info(f"[{server_id}] Terminating server process")
                 try:
                     process.terminate()
-                    await asyncio.wait_for(process.wait(), timeout=5.0)
+                    await asyncio.wait_for(await process.wait(), timeout=5.0)
                     update_state(ServerState.STOPPED, "Server terminated by monitor")
                 except asyncio.TimeoutError:
                     log.warning(
@@ -1270,7 +1270,7 @@ async def main():
         log.info("replace STEAM_USERNAME in dman.toml")
         print("Please change STEAM_USERNAME in dman.toml to start using dman!")
         return
-    
+
     else:
         print("Initializing...", end="", flush=True)
 
@@ -1401,9 +1401,10 @@ async def main():
             )
         )
 
+    # Start servers
     server_instances = await asyncio.gather(*processes)
-    log.debug(server_instances)
 
+    # Print server info
     log.info("All servers started. Server summary:")
     print("Done")
     print("Servers running:")
@@ -1411,58 +1412,123 @@ async def main():
         log.info(
             f"Instance: {server['instance']}, PID: {server['pid']}, Port: {server['port']}"
         )
-        print(f" - {server["instance"]}")
+        print(f" - {server['instance']}")
 
-    await asyncio.sleep(90)
-
+    # Set up restart scheduling
+    scheduling_tasks = []
     for server in server_instances:
-        await schedule_server_restart(
-            app_path=app_path,
-            instance_name=server["instance"],
-            restart_delay=180,  # 3 minutes between kicking players and actual restart
-            warning_time=1800,  # 30 minutes of warnings before kicks begin
+        scheduling_tasks.append(
+            await schedule_server_restart(
+                app_path=app_path,
+                instance_name=server["instance"],
+                restart_delay=180,
+                warning_time=1800,
+            )
         )
 
+    # Main monitoring loop - we'll return the server_instances so they can be cleaned up
     try:
-        # Main monitoring loop
         while True:
             await asyncio.sleep(60)
 
-            # Check if any servers have crashed and need restarting
+            # Check for crashed servers
             for server_id, state in list(server_states.items()):
                 if state["state"] == ServerState.CRASHED:
                     log.warning(
                         f"[{server_id}] Server detected as crashed, consider implementing auto-restart"
                     )
-
-    except KeyboardInterrupt:
-        log.info("Shutdown requested. Stopping all servers...")
-        # Implement graceful shutdown for all server processes
-        for server in server_instances:
-            instance = server["instance"]
-            process = server["process"]
-            if process and process.returncode is None:
-                log.info(f"[{instance}] Sending terminate signal...")
-                process.terminate()
-
-        # Wait for servers to stop gracefully
-        log.info("Waiting for servers to stop gracefully...")
-        await asyncio.sleep(10)
-
-        # Force kill any remaining processes
-        for server in server_instances:
-            process = server["process"]
-            if process and process.returncode is None:
-                log.warning(
-                    f"[{server['instance']}] Server still running, force killing..."
-                )
-                process.kill()
-
-    except Exception as e:
-        log.critical(f"Main loop error: {e}")
     finally:
-        log.info("Server manager shutting down")
+        # This will run when the task is cancelled
+        return server_instances
+
+
+async def shutdown_servers(server_instances):
+    """Gracefully shut down all server instances"""
+    if not server_instances:
+        return
+
+    log.info("Shutdown requested. Stopping all servers...")
+    print("losing dman...")
+
+    # Send terminate signal to all servers
+    for server in server_instances:
+        instance = server["instance"]
+        process = server["process"]
+        if process and process.returncode is None:
+            log.info(f"[{instance}] Sending terminate signal...")
+            process.terminate()
+
+    # Wait for servers to stop gracefully
+    log.info("Waiting for servers to stop gracefully...")
+    await asyncio.sleep(10)
+
+    # Force kill any remaining processes
+    for server in server_instances:
+        process = server["process"]
+        if process and process.returncode is None:
+            log.warning(
+                f"[{server['instance']}] Server still running, force killing..."
+            )
+            process.kill()
+
+    # Wait for all processes to fully terminate
+    for server in server_instances:
+        process = server["process"]
+        if process:
+            try:
+                await asyncio.wait_for(process.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                log.warning(
+                    f"[{server['instance']}] Process didn't terminate within timeout"
+                )
+
+    log.info("Server manager shutting down")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    server_instances = None
+    main_task = None
+
+    try:
+        # Run the main task
+        main_task = loop.create_task(main())
+        server_instances = loop.run_until_complete(main_task)
+    except KeyboardInterrupt:
+        # This runs when Ctrl+C is pressed
+        log.info("Keyboard interrupt detected")
+        if main_task and not main_task.done():
+            # Cancel the main task if it's still running
+            main_task.cancel()
+            try:
+                # Try to get the server instances if available
+                server_instances = loop.run_until_complete(main_task)
+            except asyncio.CancelledError:
+                # This is expected when cancelling the task
+                pass
+    finally:
+        # Run the shutdown procedure if we have server instances
+        if server_instances:
+            try:
+                loop.run_until_complete(shutdown_servers(server_instances))
+            except Exception as e:
+                log.error(f"Error during shutdown: {e}")
+
+        # Close all running event loop tasks
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+
+        # Allow cancelled tasks to complete with a timeout
+        if pending:
+            try:
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+            except asyncio.CancelledError:
+                pass
+
+        # Close the event loop
+        loop.close()
