@@ -1285,6 +1285,9 @@ async def main():
     active_instances = [
         key for key in instance_info.keys() if instance_info[key] is True
     ]
+    inactive_instances = [
+        key for key in instance_info.keys() if instance_info[key] is not True
+    ]
     log.debug(f"active_instances: {active_instances}")
 
     # confirm instance integrity and extract configurations
@@ -1386,7 +1389,11 @@ async def main():
 
     log.debug(f"servers: {servers}")
     print("Done")
-    print("Starting servers...", end="", flush=True)
+    if active_instances:
+        print("Starting servers...", end="", flush=True)
+
+    else:
+        print("No active instances, enable them in dman.toml :3")
 
     # Prepare the server processes
     for instance, arg in servers.items():
@@ -1406,13 +1413,16 @@ async def main():
 
     # Print server info
     log.info("All servers started. Server summary:")
-    print("Done")
-    print("Servers running:")
-    for server in server_instances:
-        log.info(
-            f"Instance: {server['instance']}, PID: {server['pid']}, Port: {server['port']}"
-        )
-        print(f" - {server['instance']}")
+    if active_instances:
+        print("Done")
+        await asyncio.sleep(5)
+        main_menu(active_instances, inactive_instances)
+    # print("Servers running:")
+    # for server in server_instances:
+    #     log.info(
+    #         f"Instance: {server['instance']}, PID: {server['pid']}, Port: {server['port']}"
+    #     )
+    #     print(f" - {server['instance']}")
 
     # Set up restart scheduling
     scheduling_tasks = []
@@ -1429,6 +1439,8 @@ async def main():
     # Main monitoring loop - we'll return the server_instances so they can be cleaned up
     try:
         while True:
+            running_servers = []
+            stopped_servers = []
             await asyncio.sleep(60)
 
             # Check for crashed servers
@@ -1437,6 +1449,19 @@ async def main():
                     log.warning(
                         f"[{server_id}] Server detected as crashed, consider implementing auto-restart"
                     )
+                    if server_id not in stopped_servers:
+                        stopped_servers.append(server_id)
+
+                    if server_id in running_servers:
+                        running_servers.remove(server_id)
+
+                elif server_id not in running_servers:
+                    running_servers.append(server_id)
+
+                    if server_id in stopped_servers:
+                        stopped_servers.remove(server_id)
+
+            main_menu(running_servers, stopped_servers)
     finally:
         # This will run when the task is cancelled
         return server_instances
