@@ -2,15 +2,16 @@
 # dman   #
 ##########
 [dman.info]
-steamcmd_path = 'steamcmd'
-servers_path = 'servers'
+steamcmd_path = 'steamcmd' # these are both located in the app/ dir
+servers_path = 'servers' # the app/ dir is created after changing default username and password
 
 
 ##########
 # user   #
 ##########
 [user.info]
-steam_username = 'STEAM_USERNAME'
+steam_username = 'STEAM_USERNAME' # change these!
+steam_password = 'STEAM_PASSWORD'
 
 
 ###########

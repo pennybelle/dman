@@ -11,6 +11,7 @@ import os
 import re
 import struct
 import socket
+import threading
 import subprocess
 import asyncio
 import logging
@@ -19,9 +20,20 @@ import time
 import datetime
 import toml
 
-from subprocess import Popen, PIPE
+
+from subprocess import Popen, PIPE, check_output
 from shutil import copyfile, copytree
 from sys import exit
+from rich.console import Console
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
 from __logger__ import setup_logger
 from modules.main_menu import main_menu, title_screen
 from modules.constants_classes import (
@@ -54,6 +66,19 @@ title_screen()
 
 # Dictionary to track server states
 server_states = {}
+
+
+def get_console_size():
+    # gather raw output from console
+    # console_width = check_output(["stty", "size"], stdout=PIPE)
+    # format raw data into int
+    # console_width = int(console_width.communicate().decode())
+
+    console_size = check_output(["stty", "size"]).decode("utf-8").split()
+    h = int(console_size[0])
+    w = int(console_size[1])
+
+    return w, h
 
 
 class RCONClient:
@@ -209,19 +234,207 @@ class RCONClient:
                 self.authenticated = False
 
 
-# install steamcmd if needed
-def check_steamcmd(steamcmd):
+def check_steamcmd(app_path, username, password):
     link = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
     log.info("checking for steamcmd...")
-    if os.path.isdir(steamcmd) is not True:
-        log.info("not found, installing...(this could take a while)")
-        os.makedirs(steamcmd)
-        Popen(
-            f'cd {steamcmd} && curl -sqL "{link}" | tar zxvf -',
-            shell=True,
-            stdout=PIPE,
-            stderr=PIPE,
-        ).communicate()
+    steamcmd = os.path.join(app_path, "steamcmd")
+
+    # Get terminal width
+    w, h = get_console_size()
+    terminal_width = w
+
+    # Calculate bar width based on terminal width
+    # Subtract space for other columns (spinner, text, percentage, time)
+    bar_width = terminal_width - 50  # Adjust this value as needed
+
+    console = Console()
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=bar_width),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+        expand=True,  # Ensure the progress bar expands to fill available space
+    ) as progress:
+        if not os.path.isdir(steamcmd):
+            log.info("SteamCMD not found, installing...")
+            os.makedirs(steamcmd, exist_ok=True)
+
+            # Create a task for the SteamCMD download
+            download_task = progress.add_task(
+                "[green]Downloading SteamCMD...", total=100
+            )
+
+            # Download and extract SteamCMD
+            download_cmd = f'cd {steamcmd} && curl -sqL "{link}" | tar zxvf -'
+
+            # Create a flag to track if the process is still running
+            process_running = True
+
+            # Use Popen to get real-time output
+            process = subprocess.Popen(
+                download_cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
+
+            # Function to gradually update progress
+            def update_download_progress():
+                step = 0
+                while process_running and step < 99:
+                    if process.poll() is not None:  # Process finished
+                        break
+                    time.sleep(0.1)
+                    step = min(step + 1, 99)  # Cap at 99%
+                    progress.update(download_task, completed=step)
+
+            # Start progress updater in a thread
+            progress_thread = threading.Thread(
+                target=update_download_progress, daemon=True
+            )
+            progress_thread.start()
+
+            # Wait for process to complete
+            stdout, stderr = process.communicate()
+
+            # Process is no longer running
+            process_running = False
+
+            # Wait for the thread to pick up the change
+            time.sleep(0.2)
+
+            # Ensure progress is at 100%
+            progress.update(
+                download_task,
+                completed=100,
+                description="[green]SteamCMD download complete",
+            )
+
+            # Log output to file
+            if stdout:
+                for line in stdout.splitlines():
+                    log.debug(f"SteamCMD download output: {line}")
+
+            if stderr:
+                for line in stderr.splitlines():
+                    log.error(f"SteamCMD download error: {line}")
+
+            if process.returncode != 0:
+                log.error(
+                    f"Failed to download SteamCMD with return code: {process.returncode}"
+                )
+                raise RuntimeError("SteamCMD download failed")
+
+            # Verify steamcmd.sh exists
+            steamcmd_sh = os.path.join(steamcmd, "steamcmd.sh")
+            if not os.path.exists(steamcmd_sh):
+                log.error(f"steamcmd.sh not found at {steamcmd_sh} after extraction")
+                raise FileNotFoundError(f"steamcmd.sh not found at {steamcmd_sh}")
+
+        log.info("checking for server_template...")
+        server_template = os.path.join(steamcmd, "server_template")
+
+        if (
+            os.path.isdir(server_template) is not True
+            or len(os.listdir(server_template)) == 0
+        ):
+            log.info(
+                "Server template not found, installing (this will take a while)..."
+            )
+            # os.makedirs(server_template, exist_ok=True)
+
+            steamcmd_sh = os.path.join(steamcmd, "steamcmd.sh")
+            if not os.path.exists(steamcmd_sh):
+                log.error(f"steamcmd.sh not found at {steamcmd_sh}")
+                raise FileNotFoundError(f"steamcmd.sh not found at {steamcmd_sh}")
+
+            # Create a task for the server template installation
+            template_task = progress.add_task(
+                "[yellow]Downloading server template...", total=100
+            )
+
+            # Process running flag
+            process_running = True
+
+            # Run steamcmd with correct arguments using Popen for real-time output
+            process = subprocess.Popen(
+                [
+                    steamcmd_sh,
+                    f"+force_install_dir {server_template}",
+                    f"+login {username} {password}",
+                    "+app_update 223350",
+                    "+quit",
+                ],
+                shell=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
+
+            # Regex to extract progress percentage from SteamCMD output
+            progress_pattern = re.compile(r"Update state \(0x\d+\) (\d+)%.*")
+
+            # Current progress percentage
+            current_progress = 0
+
+            # Function to parse output and update progress
+            def update_template_progress():
+                nonlocal current_progress
+                for line in iter(process.stdout.readline, ""):
+                    if not process_running:
+                        break
+
+                    match = progress_pattern.search(line)
+                    if match:
+                        percent = int(match.group(1))
+                        current_progress = percent
+                        progress.update(template_task, completed=percent)
+                    log.debug(f"SteamCMD install output: {line.strip()}")
+
+                # Process stderr
+                for line in iter(process.stderr.readline, ""):
+                    if not process_running:
+                        break
+                    log.error(f"SteamCMD install error: {line.strip()}")
+
+            # Start progress updater in a thread
+            progress_thread = threading.Thread(
+                target=update_template_progress, daemon=True
+            )
+            progress_thread.start()
+
+            # Wait for process to complete
+            process.wait()
+
+            # Mark process as completed
+            process_running = False
+
+            # Small delay to let the thread catch up
+            time.sleep(0.2)
+
+            # Ensure progress is at 100%
+            progress.update(
+                template_task,
+                completed=100,
+                description="[yellow]Server template installation complete",
+            )
+
+            if process.returncode != 0:
+                log.error(
+                    f"Failed to install server template with return code: {process.returncode}"
+                )
+                raise RuntimeError("Server template installation failed")
+
+    log.info("steamcmd setup complete")
 
 
 # initiate servers directory and return list of sub-directories
@@ -249,7 +462,7 @@ def check_servers(servers_path):
 
 
 #  initiate server files and default config if needed
-def validate_server_files(username, app_path, server_name):
+def validate_server_files(app_path, server_name):
     log.info(f"initializing instance {server_name}...")
     instance_path = os.path.join(app_path, "servers", server_name)
 
@@ -257,15 +470,9 @@ def validate_server_files(username, app_path, server_name):
 
     if os.path.isdir(instance_path) is not True or len(os.listdir(instance_path)) == 0:
         log.info("creating instance...")
-        subprocess.run(
-            [
-                f"{os.path.join(app_path, 'steamcmd', 'steamcmd.sh')}",
-                f"+force_install_dir {instance_path}",
-                f"+login {username}",
-                "+app_update 223350",
-                "+quit",
-            ],
-            shell=False,
+        copytree(
+            os.path.join(app_path, "steamcmd", "server_template"),
+            instance_path,
         )
 
     # make default toml
@@ -1256,11 +1463,12 @@ async def main():
     dman_path = os.getcwd()
     app_path = os.path.join(dman_path, "app")
     servers_path = os.path.join(app_path, "servers")
-    steamcmd_path = os.path.join(app_path, "steamcmd")
+    # steamcmd_path = os.path.join(app_path, "steamcmd")
 
     # grab username from dman config
     user_info = dman_config["user"]["info"]
     username = user_info["steam_username"]
+    password = user_info["steam_password"]
 
     # grab server instances from dman config
     instance_info = dman_config["servers"]["list"]
@@ -1268,14 +1476,21 @@ async def main():
 
     if username == "STEAM_USERNAME":
         log.info("replace STEAM_USERNAME in dman.toml")
-        print("Please change STEAM_USERNAME in dman.toml to start using dman!")
+        print(
+            "Please change STEAM_USERNAME & STEAM_PASSWORD in dman.toml to start using dman!"
+        )
+        return
+
+    if password == "STEAM_PASSWORD":
+        log.info("replace STEAM_PASSWORD in dman.toml")
+        print("Please change STEAM_PASSWORD in dman.toml to start using dman!")
         return
 
     else:
         print("Initializing...", end="", flush=True)
 
     # ensure steamcmd is installed
-    check_steamcmd(steamcmd_path)
+    check_steamcmd(app_path, username, password)
 
     # ensure servers directory is initiated
     check_servers(servers_path)
@@ -1295,9 +1510,7 @@ async def main():
     if len(instances) > 0:
         server_configs = []
         for instance in instances:
-            instance_name, needs_edit = validate_server_files(
-                username, app_path, instance
-            )
+            instance_name, needs_edit = validate_server_files(app_path, instance)
             if needs_edit:
                 instances_needing_edits.append(instance_name)
 
@@ -1315,13 +1528,12 @@ async def main():
 
     # Exit if any instances need configuration
     if instances_needing_edits:
-        log.warning(
+        print(
             f"The following instances need configuration: {', '.join(instances_needing_edits)}"
         )
-        log.warning(
-            "Please edit their server.toml files before running the script again."
-        )
-        exit()
+        print("Please edit their server.toml files before running the script again.")
+        await asyncio.sleep(5)
+        return
 
     mod_dict = validate_workshop_mods(username, server_configs, app_path)
     log.debug(f"mod_dict: {mod_dict}")
