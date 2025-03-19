@@ -1651,8 +1651,8 @@ async def main():
     # Main monitoring loop - we'll return the server_instances so they can be cleaned up
     try:
         while True:
-            running_servers = []
-            stopped_servers = []
+            running_servers = [instance for instance in active_instances]
+            stopped_servers = [instance for instance in inactive_instances]
             await asyncio.sleep(60)
 
             # Check for crashed servers

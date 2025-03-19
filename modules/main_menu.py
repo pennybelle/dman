@@ -67,7 +67,7 @@ def title_screen():
 def main_menu(running_servers, stopped_servers):
     title_screen()
     if running_servers:
-        print("Servers running:")
+        print("Running:")
         for server in running_servers:
             print(f" - {server}")
 
@@ -75,6 +75,6 @@ def main_menu(running_servers, stopped_servers):
         print("No active instances, enable them in dman.toml :3")
 
     if stopped_servers:
-        print("Servers stopped:")
+        print("Stopped:")
         for server in stopped_servers:
             print(f" - {server}")
