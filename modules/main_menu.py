@@ -64,17 +64,19 @@ def title_screen():
 # ┗{"━" * (w - 2)}┛""")
 
 
-def main_menu(running_servers, stopped_servers):
+def main_menu(server_states):
     title_screen()
-    if running_servers:
-        print("Running:")
-        for server in running_servers:
-            print(f" - {server}")
 
-    else:
-        print("No active instances, enable them in dman.toml :3")
+    print(server_states)
+    # if running_servers:
+    #     print("Running:")
+    #     for server in running_servers:
+    #         print(f" - {server}")
 
-    if stopped_servers:
-        print("Stopped:")
-        for server in stopped_servers:
-            print(f" - {server}")
+    # else:
+    #     print("No active instances, enable them in dman.toml :3")
+
+    # if stopped_servers:
+    #     print("Stopped:")
+    #     for server in stopped_servers:
+    #         print(f" - {server}")

@@ -49,8 +49,6 @@ setup_logger(level=10, stream_logs=False)
 
 log.info("######################## STARTING FROM THE TOP ########################")
 
-title_screen()
-
 ## LEVELS ##
 # 10: DEBUG
 # 20: INFO
@@ -249,17 +247,17 @@ def check_steamcmd(app_path, username, password):
 
     console = Console()
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[bold blue]{task.description}"),
-        BarColumn(bar_width=bar_width),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-        console=console,
-        expand=True,  # Ensure the progress bar expands to fill available space
-    ) as progress:
-        if not os.path.isdir(steamcmd):
+    if not os.path.isdir(steamcmd):
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(bar_width=bar_width),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+            expand=True,  # Ensure the progress bar expands to fill available space
+        ) as progress:
             log.info("SteamCMD not found, installing...")
             os.makedirs(steamcmd, exist_ok=True)
 
@@ -1446,6 +1444,9 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
 
 # lets go
 async def main():
+    title_screen()
+    print("Initializing...", end="", flush=True)
+
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
     default_dman_config_path = os.path.join(
@@ -1485,9 +1486,6 @@ async def main():
         log.info("replace STEAM_PASSWORD in dman.toml")
         print("Please change STEAM_PASSWORD in dman.toml to start using dman!")
         return
-
-    else:
-        print("Initializing...", end="", flush=True)
 
     # ensure steamcmd is installed
     check_steamcmd(app_path, username, password)
@@ -1535,8 +1533,8 @@ async def main():
         await asyncio.sleep(5)
         return
 
-    mod_dict = validate_workshop_mods(username, server_configs, app_path)
-    log.debug(f"mod_dict: {mod_dict}")
+    # mod_dict = validate_workshop_mods(username, server_configs, app_path)
+    # log.debug(f"mod_dict: {mod_dict}")
 
     try:
         mod_dict = validate_workshop_mods(username, server_configs, app_path)
@@ -1600,6 +1598,7 @@ async def main():
             servers[instance]["server_mods"] = updated_server_mods
 
     log.debug(f"servers: {servers}")
+
     print("Done")
     if active_instances:
         print("Starting servers...", end="", flush=True)
@@ -1624,11 +1623,12 @@ async def main():
     server_instances = await asyncio.gather(*processes)
 
     # Print server info
-    log.info("All servers started. Server summary:")
+    log.info("All enabled servers started. Server summary:")
     if active_instances:
         print("Done")
         await asyncio.sleep(5)
-        main_menu(active_instances, inactive_instances)
+        main_menu(server_states)
+
     # print("Servers running:")
     # for server in server_instances:
     #     log.info(
@@ -1673,7 +1673,7 @@ async def main():
                     if server_id in stopped_servers:
                         stopped_servers.remove(server_id)
 
-            main_menu(running_servers, stopped_servers)
+            main_menu(server_states)
     finally:
         # This will run when the task is cancelled
         return server_instances
