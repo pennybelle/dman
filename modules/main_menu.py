@@ -67,7 +67,17 @@ def title_screen():
 def main_menu(server_states):
     title_screen()
 
-    print(server_states)
+    print("Active Servers:")
+    for server, data in list(server_states.items()):
+        pid = data["pid"]
+        port = data["port"]
+        players = data["players"]
+        state = data["state"]
+        print(
+            f" - {server} [{state}] [PID: {pid}] [Port: {port}] [Players: {players}]".replace(
+                "ServerState.", ""
+            )
+        )
     # if running_servers:
     #     print("Running:")
     #     for server in running_servers:

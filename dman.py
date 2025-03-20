@@ -1653,7 +1653,7 @@ async def main():
         while True:
             running_servers = [instance for instance in active_instances]
             stopped_servers = [instance for instance in inactive_instances]
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
 
             # Check for crashed servers
             for server_id, state in list(server_states.items()):
