@@ -784,6 +784,11 @@ async def monitor_process(process, instance_name=None, port=None):
             ServerState.RUNNING,
             "Server ready for connections",
         ),
+        (
+            re.compile(r"DayZ Console version"),
+            ServerState.RUNNING,
+            "Server ready for connections",
+        ),
         (re.compile(r'Player [^"]+ connected'), None, "Player connected"),
         (re.compile(r'Player [^"]+ disconnected'), None, "Player disconnected"),
         (
@@ -791,7 +796,7 @@ async def monitor_process(process, instance_name=None, port=None):
             ServerState.ERROR,
             "Server error detected",
         ),
-        (re.compile(r"WARNING"), ServerState.WARNING, "Server warning"),
+        # (re.compile(r"WARNING"), ServerState.WARNING, "Server warning"),
         (
             re.compile(r"Connection with host timed out"),
             ServerState.WARNING,
