@@ -1451,7 +1451,7 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
 # lets go
 async def main():
     title_screen()
-    print("Initializing...", end="", flush=True)
+    print("Initializing dman...", end="", flush=True)
 
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
@@ -1629,7 +1629,7 @@ async def main():
 
     print("Done")
     if active_instances:
-        print("Starting servers...", end="", flush=True)
+        print("Initializing servers...", end="", flush=True)
 
     else:
         print("No active instances, enable them in dman.toml :3")
