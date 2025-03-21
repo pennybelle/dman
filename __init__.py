@@ -5,13 +5,14 @@ import datetime
 import toml
 
 from shutil import copyfile
+from rich.console import Console
 
 from modules.main_menu import main_menu, title_screen
 from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
 from modules.steamcmd import (
     check_steamcmd,
-    check_server_template,
+    # check_server_template,
     validate_workshop_mods,
     import_mods,
 )
@@ -26,11 +27,13 @@ log = logging.getLogger(__name__)
 # Dictionary to track server states
 server_states = {}
 
+# console = Console()
+
 
 # lets go
 async def main():
     title_screen()
-    print("Initializing dman...", end="", flush=True)
+    print("Initializing steamcmd...", end="", flush=True)
 
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
@@ -73,8 +76,8 @@ async def main():
         return
 
     # ensure steamcmd is installed
-    check_steamcmd(app_path)
-    check_server_template(app_path, username, password)
+    check_steamcmd(app_path, username, password)
+    # check_server_template(app_path, username, password)
 
     # ensure servers directory is initiated
     check_servers(servers_path)
@@ -132,7 +135,7 @@ async def main():
     print("Done")
 
     if active_instances:
-        print("Initializing servers...", end="", flush=True)
+        print("Initializing servers...", end="")
 
     else:
         print("No active instances, enable them in dman.toml :3")
