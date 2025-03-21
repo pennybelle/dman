@@ -74,18 +74,22 @@ def main_menu(server_states):
     )
 
     # Calculate relative column widths based on console width
-    server_width = int(w * 0.45)  # 45% of width
-    state_width = int(w * 0.15)  # 15% of width
+    server_width = int(w * 0.50)  # 50% of width
+    state_width = int(w * 0.10)  # 10% of width
     players_width = int(w * 0.10)  # 10% of width
     pid_width = int(w * 0.10)  # 10% of width
     port_width = int(w * 0.10)  # 10% of width
 
     # Add columns with specified widths
-    table.add_column("Server", style="", width=server_width, no_wrap=True)
-    table.add_column("State", style="", width=state_width, no_wrap=True)
-    table.add_column("Players", justify="right", width=players_width, no_wrap=True)
+    table.add_column("Server", style="magenta", width=server_width, no_wrap=True)
     table.add_column("PID", justify="right", width=pid_width, no_wrap=True)
-    table.add_column("Port", justify="right", width=port_width, no_wrap=True)
+    table.add_column(
+        "Port", style="blue", justify="right", width=port_width, no_wrap=True
+    )
+    table.add_column("Players", justify="right", width=players_width, no_wrap=True)
+    table.add_column(
+        "State", style="", justify="right", width=state_width, no_wrap=True
+    )
 
     # Add rows
     for server, data in list(server_states.items()):
@@ -94,18 +98,39 @@ def main_menu(server_states):
         players = data["players"]
         state = data["state"]
 
+        # STOPPED = "STOPPED"
+        # STARTING = "STARTING"
+        # RUNNING = "RUNNING"
+        # WARNING = "WARNING"
+        # ERROR = "ERROR"
+        # CRASHED = "CRASHED"
+
         # Conditional styling based on state
         state_text = str(state).replace("ServerState.", "")
-        state_style = "green" if state_text == "RUNNING" else "red"
+        if state_text == "STARTING":
+            state_style = "yellow"
+        elif state_text == "RUNNING":
+            state_style = "green"
+        elif state_text == "STOPPED":
+            state_style = "dim"
+        elif state_text == "WARNING":
+            state_style = "red"
+        elif state_text == "ERROR":
+            state_style = "red"
+        elif state_text == "CRASHED":
+            state_style = "red"
+        else:
+            state_style = "dim"
 
-        dim_if_na = "dim" if players == "N/A" else "white"
+        dim_if_players_na = "dim blue" if players == "N/A" else "blue"
+        dim_if_pid_na = "dim" if pid == "N/A" else "white"
 
         table.add_row(
             server,
-            f"[{state_style}]{state_text}[/{state_style}]",
-            f"[{dim_if_na}]{players}[/{dim_if_na}]",
-            f"[{dim_if_na}]{pid}[/{dim_if_na}]",
+            f"[{dim_if_pid_na}]{pid}[/{dim_if_pid_na}]",
             str(port),
+            f"[{dim_if_players_na}]{players}[/{dim_if_players_na}]",
+            f"[{state_style}]{state_text}[/{state_style}]",
         )
 
     # Print the table
