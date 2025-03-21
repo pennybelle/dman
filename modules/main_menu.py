@@ -81,9 +81,7 @@ def main_menu(server_states):
     port_width = int(w * 0.10)  # 10% of width
 
     # Add columns with specified widths
-    table.add_column(
-        "Server", style="rgb(255,161,229)", width=server_width, no_wrap=True
-    )
+    table.add_column("Server", style="", width=server_width, no_wrap=True)
     table.add_column(
         "PID", style="white", justify="right", width=pid_width, no_wrap=True
     )
@@ -119,21 +117,35 @@ def main_menu(server_states):
         state_text = str(state).replace("ServerState.", "")
         if state_text == "STARTING":
             state_style = "yellow"
+            server_style = "rgb(255,161,229)"
         elif state_text == "RUNNING":
             state_style = "green"
+            server_style = "rgb(255,161,229)"
         elif state_text == "STOPPED":
             state_style = "dim"
+            server_style = "dim"
         elif state_text == "WARNING":
+            server_style = "rgb(255,161,229)"
             state_style = "red"
         elif state_text == "ERROR":
             state_style = "red"
+            server_style = "rgb(255,161,229)"
         elif state_text == "CRASHED":
             state_style = "red"
+            server_style = "dim"
         else:
             state_style = "dim"
+            server_style = "dim"
+
+        # if state_text != "STOPPED":
+        #     server_style = "rgb(255,161,229)"
+        # if state_text != "CRASHED":
+        #     server_style = "rgb(255,161,229)"
+        # else:
+        #     server_style = "dim"
 
         table.add_row(
-            server,
+            f"[{server_style}]{server}[/{server_style}]",
             str(pid),
             str(port),
             str(players),
