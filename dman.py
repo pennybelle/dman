@@ -1549,6 +1549,15 @@ async def main():
         log.error(f"Error validating workshop mods: {e}")
         mod_dict = {}  # Use empty dict if validation fails
 
+    print("Done")
+
+    if active_instances:
+        print("Initializing servers...", end="", flush=True)
+
+    else:
+        print("No active instances, enable them in dman.toml :3")
+        return
+
     # this is where we store server information and the actual processes
     servers = {}
     processes = []
@@ -1626,13 +1635,6 @@ async def main():
             servers[instance]["server_mods"] = updated_server_mods
 
     log.debug(f"servers: {servers}")
-
-    print("Done")
-    if active_instances:
-        print("Initializing servers...", end="", flush=True)
-
-    else:
-        print("No active instances, enable them in dman.toml :3")
 
     # Prepare the server processes
     for instance, data in servers.items():
