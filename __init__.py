@@ -92,6 +92,8 @@ async def main():
     ]
     log.debug(f"active_instances: {active_instances}")
 
+    print("Done")
+
     # confirm instance integrity and extract configurations
     instances_needing_edits = []
     if instance_info:
@@ -131,8 +133,6 @@ async def main():
     except Exception as e:
         log.error(f"Error validating workshop mods: {e}")
         mod_dict = {}  # Use empty dict if validation fails
-
-    print("Done")
 
     if active_instances:
         print("Initializing servers...", end="")

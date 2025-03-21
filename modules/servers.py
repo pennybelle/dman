@@ -38,6 +38,7 @@ def check_servers(servers_path):
 #  initiate server files and default config if needed
 def validate_server_files(app_path, server_name):
     log.info(f"initializing instance {server_name}...")
+    print(f"Initializing instance {server_name}...", end="", flush=True)
     instance_path = os.path.join(app_path, "servers", server_name)
 
     needs_config_edit = False
@@ -61,6 +62,8 @@ def validate_server_files(app_path, server_name):
 
         needs_config_edit = True
         log.warning(f"edit the server's server.toml for {server_name} before starting")
+
+    print("Done")
 
     return server_name, needs_config_edit
 
