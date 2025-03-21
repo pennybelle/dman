@@ -84,11 +84,19 @@ def main_menu(server_states):
     table.add_column(
         "Server", style="rgb(255,161,229)", width=server_width, no_wrap=True
     )
-    table.add_column("PID", justify="right", width=pid_width, no_wrap=True)
+    table.add_column(
+        "PID", style="white", justify="right", width=pid_width, no_wrap=True
+    )
     table.add_column(
         "Port", style="rgb(90,205,255)", justify="right", width=port_width, no_wrap=True
     )
-    table.add_column("Players", justify="right", width=players_width, no_wrap=True)
+    table.add_column(
+        "Players",
+        style="rgb(90,205,255)",
+        justify="right",
+        width=players_width,
+        no_wrap=True,
+    )
     table.add_column(
         "State", style="", justify="right", width=state_width, no_wrap=True
     )
@@ -124,14 +132,11 @@ def main_menu(server_states):
         else:
             state_style = "dim"
 
-        dim_if_players_na = "rgb(55,124,153)" if players == "N/A" else "rgb(90,205,255)"
-        dim_if_pid_na = "dim" if pid == "N/A" else "white"
-
         table.add_row(
             server,
-            f"[{dim_if_pid_na}]{pid}[/{dim_if_pid_na}]",
+            str(pid),
             str(port),
-            f"[{dim_if_players_na}]{players}[/{dim_if_players_na}]",
+            str(players),
             f"[{state_style}]{state_text}[/{state_style}]",
         )
 

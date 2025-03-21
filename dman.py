@@ -1579,9 +1579,11 @@ async def main():
         rcon_port = rcon_info["port"]
         rcon_pass = rcon_info["password"]
 
+        is_active = instance_info[instance]
+
         # First collect all the server information
         servers[instance] = {
-            "is_active": instance_info[instance],
+            "is_active": is_active,
             "app_path": app_path,
             "instance": instance,
             "port": port,
@@ -1595,11 +1597,11 @@ async def main():
         # Set initial state
         server_states[instance] = {
             "state": ServerState.STOPPED,
-            "pid": "N/A",
-            "port": port,
+            "pid": "",
+            "port": port if is_active else "",
             "start_time": datetime.datetime.now(),
             "last_update": datetime.datetime.now(),
-            "players": "N/A",
+            "players": "",
             "events": [],
         }
 
