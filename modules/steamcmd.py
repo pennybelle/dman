@@ -169,7 +169,8 @@ def check_server_template(app_path, username, password):
 
             # Create a task for the server template installation
             template_task = progress.add_task(
-                "[yellow]Downloading server template...", total=100
+                "[yellow]Downloading server template (takes a while)...",
+                total=100,
             )
 
             # Process running flag
