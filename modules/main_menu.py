@@ -33,7 +33,6 @@ def get_console_size():
 
 
 def title_screen():
-    cls()
     w, h = get_console_size()
     logo_width = len("██████████████████████████████████") - 1
     # border_width = 1
@@ -55,6 +54,7 @@ def title_screen():
 {"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
 """
     console = Console(width=w)
+    cls()
     console.print(logo)
 
 

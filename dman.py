@@ -64,6 +64,7 @@ log.info("######################## STARTING FROM THE TOP #######################
 
 # Dictionary to track server states
 server_states = {}
+# cached_states = {}
 
 
 def get_console_size():
@@ -1658,7 +1659,14 @@ async def main():
         print("Done")
         await asyncio.sleep(5)
         # cached_menu = main_menu(server_states)
-        main_menu(server_states)
+        # cached_states = server_states.copy()
+        # main_menu(server_states)
+
+    # Before the main loop
+    cached_states = {}
+    for server, data in server_states.items():
+        cached_states[server] = {"state": data["state"], "players": data["players"]}
+    main_menu(server_states)  # Show initial state
 
     # print("Servers running:")
     # for server in server_instances:
@@ -1684,7 +1692,7 @@ async def main():
         while True:
             running_servers = [instance for instance in active_instances]
             stopped_servers = [instance for instance in inactive_instances]
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
 
             # Check for crashed servers
             for server_id, state in list(server_states.items()):
@@ -1704,7 +1712,45 @@ async def main():
                     if server_id in stopped_servers:
                         stopped_servers.remove(server_id)
 
-            main_menu(server_states)
+            # print(server_states)
+            # print(cached_states)
+
+            # for server, data in server_states.items():
+            #     if server in cached_states and (
+            #         data["state"] != cached_states[server]["state"]
+            #         or data["players"] != cached_states[server]["players"]
+            #     ):
+            #         main_menu(server_states)
+            #         cached_states = server_states.copy()
+            #         break  # prevent multiple menu refreshes in one cycle
+
+            needs_update = False
+            for server, data in server_states.items():
+                # Check if server is new or if state/players have changed
+                if (
+                    server not in cached_states
+                    or data["state"] != cached_states[server]["state"]
+                    or data["players"] != cached_states[server]["players"]
+                ):
+                    needs_update = True
+                    break
+
+            # Also check for removed servers
+            for server in list(cached_states.keys()):
+                if server not in server_states:
+                    needs_update = True
+                    break
+
+            if needs_update:
+                main_menu(server_states)
+                # Update cached values
+                cached_states = {}
+                for server, data in server_states.items():
+                    cached_states[server] = {
+                        "state": data["state"],
+                        "players": data["players"],
+                    }
+
     finally:
         # This will run when the task is cancelled
         return server_instances
