@@ -173,6 +173,7 @@ class RCONClient:
 
 
 async def kick_all_and_restart(
+    server_states,
     instance_name,
     rcon_port,
     rcon_password,
@@ -392,6 +393,7 @@ async def schedule_server_restart(
 
         # Execute kick all and restart
         success = await kick_all_and_restart(
+            server_states=server_states,
             rcon_port=rcon_port,
             rcon_password=rcon_password,
             instance_name=instance_name,
