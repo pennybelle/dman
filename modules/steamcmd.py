@@ -31,20 +31,20 @@ def get_console_size():
     return w, h
 
 
-def check_steamcmd(app_path, username, password):
+# Get terminal width
+w, h = get_console_size()
+terminal_width = w
+
+# Calculate bar width based on terminal width
+# Subtract space for other columns (spinner, text, percentage, time)
+bar_width = terminal_width - 50  # Adjust this value as needed
+console = Console()
+
+
+def check_steamcmd(app_path):
     link = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
     log.info("checking for steamcmd...")
     steamcmd = os.path.join(app_path, "steamcmd")
-
-    # Get terminal width
-    w, h = get_console_size()
-    terminal_width = w
-
-    # Calculate bar width based on terminal width
-    # Subtract space for other columns (spinner, text, percentage, time)
-    bar_width = terminal_width - 50  # Adjust this value as needed
-
-    console = Console()
 
     if not os.path.isdir(steamcmd):
         with Progress(
@@ -135,8 +135,23 @@ def check_steamcmd(app_path, username, password):
                 log.error(f"steamcmd.sh not found at {steamcmd_sh} after extraction")
                 raise FileNotFoundError(f"steamcmd.sh not found at {steamcmd_sh}")
 
-        log.info("checking for server_template...")
+    log.info("steamcmd setup complete")
+
+
+def check_server_template(app_path, username, password):
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=bar_width),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+        expand=True,  # Ensure the progress bar expands to fill available space
+    ) as progress:
+        steamcmd = os.path.join(app_path, "steamcmd")
         server_template = os.path.join(steamcmd, "server_template")
+        log.info("checking for server_template...")
 
         if (
             os.path.isdir(server_template) is not True
@@ -230,8 +245,6 @@ def check_steamcmd(app_path, username, password):
                     f"Failed to install server template with return code: {process.returncode}"
                 )
                 raise RuntimeError("Server template installation failed")
-
-    log.info("steamcmd setup complete")
 
 
 # find Steam path if it's not in expected location

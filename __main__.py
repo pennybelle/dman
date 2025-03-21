@@ -11,8 +11,10 @@ import asyncio
 import logging
 
 from __init__ import main, shutdown_servers
+from __logger__ import setup_logger
 
 log = logging.getLogger(__name__)
+setup_logger(level=10, stream_logs=False)
 
 ## LEVELS ##
 # 10: DEBUG

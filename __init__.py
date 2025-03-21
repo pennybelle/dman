@@ -9,13 +9,18 @@ from shutil import copyfile
 from modules.main_menu import main_menu, title_screen
 from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
-from modules.steamcmd import check_steamcmd, validate_workshop_mods, import_mods
+from modules.steamcmd import (
+    check_steamcmd,
+    check_server_template,
+    validate_workshop_mods,
+    import_mods,
+)
 from modules.servers import check_servers, validate_server_files, start_server
 
-from __logger__ import setup_logger
+# from __logger__ import setup_logger
 
 log = logging.getLogger(__name__)
-setup_logger(level=10, stream_logs=False)
+# setup_logger(level=10, stream_logs=False)
 
 
 # Dictionary to track server states
@@ -68,7 +73,8 @@ async def main():
         return
 
     # ensure steamcmd is installed
-    check_steamcmd(app_path, username, password)
+    check_steamcmd(app_path)
+    check_server_template(app_path, username, password)
 
     # ensure servers directory is initiated
     check_servers(servers_path)
