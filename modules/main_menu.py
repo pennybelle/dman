@@ -81,10 +81,12 @@ def main_menu(server_states):
     port_width = int(w * 0.10)  # 10% of width
 
     # Add columns with specified widths
-    table.add_column("Server", style="magenta", width=server_width, no_wrap=True)
+    table.add_column(
+        "Server", style="rgb(255,161,229)", width=server_width, no_wrap=True
+    )
     table.add_column("PID", justify="right", width=pid_width, no_wrap=True)
     table.add_column(
-        "Port", style="blue", justify="right", width=port_width, no_wrap=True
+        "Port", style="rgb(90,205,255)", justify="right", width=port_width, no_wrap=True
     )
     table.add_column("Players", justify="right", width=players_width, no_wrap=True)
     table.add_column(
@@ -122,7 +124,9 @@ def main_menu(server_states):
         else:
             state_style = "dim"
 
-        dim_if_players_na = "dim blue" if players == "N/A" else "blue"
+        dim_if_players_na = (
+            "dim rgb(90,205,255)" if players == "N/A" else "rgb(90,205,255)"
+        )
         dim_if_pid_na = "dim" if pid == "N/A" else "white"
 
         table.add_row(
