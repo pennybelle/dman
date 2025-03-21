@@ -124,9 +124,7 @@ def main_menu(server_states):
         else:
             state_style = "dim"
 
-        dim_if_players_na = (
-            "dim rgb(90,205,255)" if players == "N/A" else "rgb(90,205,255)"
-        )
+        dim_if_players_na = "rgb(70,157,194)" if players == "N/A" else "rgb(90,205,255)"
         dim_if_pid_na = "dim" if pid == "N/A" else "white"
 
         table.add_row(
