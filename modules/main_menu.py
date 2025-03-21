@@ -3,6 +3,7 @@ from subprocess import check_output
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
+from rich.box import SIMPLE
 
 
 def cls():
@@ -51,21 +52,16 @@ def title_screen():
 {"█" * logo_whitespace}█                                █{"█" * logo_whitespace}
 {"█" * logo_whitespace}█    open source dayz manager    █{"█" * logo_whitespace}
 {"█" * logo_whitespace}█                                █{"█" * logo_whitespace}
-{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}
-"""
+{"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}"""
     console = Console(width=w)
     cls()
     console.print(logo)
 
+    return console, w
+
 
 def main_menu(server_states):
-    title_screen()
-
-    # Get console size
-    w, h = get_console_size()
-
-    # Create console with the width of the terminal
-    console = Console(width=w)
+    console, w = title_screen()
 
     # Create a table that will fill the console width
     table = Table(
@@ -74,6 +70,7 @@ def main_menu(server_states):
         header_style="white",
         expand=True,
         width=w,
+        box=SIMPLE,
     )
 
     # Calculate relative column widths based on console width
