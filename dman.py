@@ -1498,8 +1498,8 @@ async def main():
     # ensure servers directory is initiated
     check_servers(servers_path)
 
-    # initialize instances to be run using dman config
-    instances = [key for key in instance_info.keys()]
+    # # initialize instances to be run using dman config
+    instance_keys = [key for key in instance_info.keys()]
     active_instances = [
         key for key in instance_info.keys() if instance_info[key] is True
     ]
@@ -1510,9 +1510,9 @@ async def main():
 
     # confirm instance integrity and extract configurations
     instances_needing_edits = []
-    if len(instances) > 0:
+    if instance_info:
         server_configs = []
-        for instance in instances:
+        for instance in instance_keys:
             instance_name, needs_edit = validate_server_files(app_path, instance)
             if needs_edit:
                 instances_needing_edits.append(instance_name)
@@ -1553,10 +1553,10 @@ async def main():
     processes = []
 
     # initiate configurations with server.tomls
-    for id, instance in enumerate(active_instances):
+    for instance in instance_keys:
         # Find the corresponding server config
         # This assumes active_instances is a subset of instances
-        instance_index = instances.index(instance)
+        instance_index = instance_keys.index(instance)
         server_config = server_configs[instance_index]
 
         server_info = server_config["server"]["info"]
@@ -1571,6 +1571,7 @@ async def main():
 
         # First collect all the server information
         servers[instance] = {
+            "is_active": instance_info[instance],
             "app_path": app_path,
             "instance": instance,
             "port": port,
@@ -1580,6 +1581,27 @@ async def main():
             "server_mods": server_mods,
             "logs": logs,
         }
+
+        # Set initial state
+        server_states[instance] = {
+            "state": ServerState.STOPPED,
+            "pid": "N/A",
+            "port": port,
+            "start_time": datetime.datetime.now(),
+            "last_update": datetime.datetime.now(),
+            "players": "N/A",
+            "events": [],
+        }
+
+        # # Update server state to default
+        # server_states[instance]["state"] = ServerState.STOPPED
+        # server_states[instance]["events"].append(
+        #     {
+        #         "timestamp": datetime.datetime.now(),
+        #         "state": ServerState.STOPPED.value,
+        #         "message": "Server not active",
+        #     }
+        # )
 
         # Process and update mods separately
         if client_mods or server_mods:
@@ -1612,23 +1634,26 @@ async def main():
         print("No active instances, enable them in dman.toml :3")
 
     # Prepare the server processes
-    for instance, arg in servers.items():
-        processes.append(
-            start_server(
-                arg["app_path"],
-                arg["instance"],
-                arg["port"],
-                arg["client_mods"],
-                arg["server_mods"],
-                arg["logs"],
+    for instance, data in servers.items():
+        # print(servers)
+        if data["is_active"]:
+            log.debug(f"Starting server {instance}")
+            processes.append(
+                start_server(
+                    data["app_path"],
+                    data["instance"],
+                    data["port"],
+                    data["client_mods"],
+                    data["server_mods"],
+                    data["logs"],
+                )
             )
-        )
 
     # Start servers
     server_instances = await asyncio.gather(*processes)
 
     # Print server info
-    log.info("All enabled servers started. Server summary:")
+    log.info(f"All enabled servers started. Summary: {server_instances}")
     if active_instances:
         print("Done")
         await asyncio.sleep(5)

@@ -69,10 +69,13 @@ def main_menu(server_states):
 
     print("Active Servers:")
     for server, data in list(server_states.items()):
+        # try:
         pid = data["pid"]
         port = data["port"]
         players = data["players"]
         state = data["state"]
+        # except KeyError:
+        #     pass
         print(
             f" - {server} [{state}] [PID: {pid}] [Port: {port}] [Players: {players}]".replace(
                 "ServerState.", ""
