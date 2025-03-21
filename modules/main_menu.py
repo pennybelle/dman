@@ -1,3 +1,5 @@
+import logging
+
 from os import system, name
 from subprocess import check_output
 from rich.console import Console
@@ -6,8 +8,7 @@ from rich.panel import Panel
 from rich.box import SIMPLE
 
 
-def cls():
-    system("cls" if name == "nt" else "clear")
+log = logging.getLogger(__name__)
 
 
 def get_console_size():
@@ -21,16 +22,6 @@ def get_console_size():
     w = int(console_size[1])
 
     return w, h
-
-
-#     print(rf"""┏{"━" * (w - 2)}┓
-# ┃{logo_whitespace}██████╗ ███╗   ███╗ █████╗ ███╗   ██╗{logo_whitespace} ┃
-# ┃{logo_whitespace}██╔══██╗████╗ ████║██╔══██╗████╗  ██║{logo_whitespace} ┃
-# ┃{logo_whitespace}██║  ██║██╔████╔██║███████║██╔██╗ ██║{logo_whitespace} ┃
-# ┃{logo_whitespace}██║  ██║██║╚██╔╝██║██╔══██║██║╚██╗██║{logo_whitespace} ┃
-# ┃{logo_whitespace}██████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║{logo_whitespace} ┃
-# ┃{logo_whitespace}╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝{logo_whitespace} ┃
-# ┗{"━" * (w - 2)}┛""")
 
 
 def title_screen():
@@ -54,7 +45,7 @@ def title_screen():
 {"█" * logo_whitespace}█                                █{"█" * logo_whitespace}
 {"█" * logo_whitespace}██████████████████████████████████{"█" * logo_whitespace}"""
     console = Console(width=w)
-    cls()
+    system("cls" if name == "nt" else "clear")
     console.print(logo)
 
     return console, w
@@ -67,7 +58,7 @@ def main_menu(server_states):
     table = Table(
         # title="Server Instances",
         show_header=True,
-        header_style="white",
+        header_style="white bold",
         expand=True,
         width=w,
         box=SIMPLE,
@@ -106,13 +97,6 @@ def main_menu(server_states):
         players = data["players"]
         state = data["state"]
 
-        # STOPPED = "STOPPED"
-        # STARTING = "STARTING"
-        # RUNNING = "RUNNING"
-        # WARNING = "WARNING"
-        # ERROR = "ERROR"
-        # CRASHED = "CRASHED"
-
         # Conditional styling based on state
         state_text = str(state).replace("ServerState.", "")
         if state_text == "STARTING":
@@ -136,13 +120,6 @@ def main_menu(server_states):
         else:
             state_style = "dim"
             server_style = "dim"
-
-        # if state_text != "STOPPED":
-        #     server_style = "rgb(255,161,229)"
-        # if state_text != "CRASHED":
-        #     server_style = "rgb(255,161,229)"
-        # else:
-        #     server_style = "dim"
 
         table.add_row(
             f"[{server_style}]{server}[/{server_style}]",
