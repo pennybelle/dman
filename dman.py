@@ -1657,6 +1657,7 @@ async def main():
     if active_instances:
         print("Done")
         await asyncio.sleep(5)
+        # cached_menu = main_menu(server_states)
         main_menu(server_states)
 
     # print("Servers running:")
