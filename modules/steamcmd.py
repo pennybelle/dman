@@ -6,11 +6,11 @@ import threading
 import re
 import shutil
 
+from modules.format import print_center
+
 from shutil import copytree
 from subprocess import check_output
-
 from rich.console import Console
-
 from rich.progress import (
     Progress,
     SpinnerColumn,
@@ -329,7 +329,11 @@ def find_steam_workshop_path(app_id, app_path):
 
 # ensure mod installation in workshop and server root
 def validate_workshop_mods(username, server_configs, app_path):
-    print("\nValidating mods...", end="", flush=True)
+    # print to CLI UI, center text
+    print_center("Validating mods...")
+
+    # print("\nValidating mods...", end="", flush=True)
+
     steamcmd_path = os.path.join(app_path, "steamcmd")
     mod_templates_path = os.path.join(
         steamcmd_path, "steamapps", "workshop", "content", "221100"

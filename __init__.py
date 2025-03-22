@@ -6,8 +6,8 @@ import datetime
 import toml
 
 from shutil import copyfile
-# from rich.console import Console
 
+from modules.format import print_center
 from modules.main_menu import main_menu, title_screen
 from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
@@ -29,48 +29,25 @@ log = logging.getLogger(__name__)
 server_states = {}
 
 
-def get_username():
-    return pwd.getpwuid(os.getuid())[0]
-
-
+# check if user is logged in as root
 def is_root():
-    # if os.geteuid() == 0:
-    #     return True
-    # else:
-    #     return False
-
-    # import errno
-
-    if get_username() == "root":
+    if pwd.getpwuid(os.getuid())[0] == "root":
         return True
     else:
         return False
-
-
-# def is_not_sudo():
-#     if "SUDO_UID" not in os.environ:
-#         return True
-#     else:
-#         return False
 
 
 # lets go
 async def main():
     title_screen()
 
-    # print(os.environ.keys())
-
     # cant run this script as root
     if is_root():
         print("\nYou cannot run dman as root, sorry!\n")
         return
 
-    # # have to be sudo to run this script
-    # if is_not_sudo():
-    #     print("You must be a sudo user to use dman, sorry!")
-    #     return
-
-    print("\nInitializing steamcmd...", end="", flush=True)
+    # print to CLI UI, center text
+    print_center("Initializing steamcmd...")
 
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")

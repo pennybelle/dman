@@ -5,6 +5,7 @@ import datetime
 import re
 
 from modules.serverstate import ServerState
+from modules.format import print_center
 
 from shutil import copyfile, copytree
 
@@ -38,7 +39,12 @@ def check_servers(servers_path):
 #  initiate server files and default config if needed
 def validate_server_files(app_path, server_name):
     log.info(f"initializing instance {server_name}...")
-    print(f"Initializing instance {server_name}...", end="", flush=True)
+
+    # print to CLI UI, center text
+    print_center(f"Initializing instance {server_name}...", beginning="")
+
+    # print(f"Initializing instance {server_name}...", end="", flush=True)
+
     instance_path = os.path.join(app_path, "servers", server_name)
 
     needs_config_edit = False
