@@ -1,4 +1,5 @@
 import os
+import pwd
 import asyncio
 import logging
 import datetime
@@ -27,12 +28,48 @@ log = logging.getLogger(__name__)
 # Dictionary to track server states
 server_states = {}
 
-# console = Console()
+
+def get_username():
+    return pwd.getpwuid(os.getuid())[0]
+
+
+def is_root():
+    # if os.geteuid() == 0:
+    #     return True
+    # else:
+    #     return False
+
+    # import errno
+
+    if get_username() == "root":
+        return True
+    else:
+        return False
+
+
+# def is_not_sudo():
+#     if "SUDO_UID" not in os.environ:
+#         return True
+#     else:
+#         return False
 
 
 # lets go
 async def main():
     title_screen()
+
+    # print(os.environ.keys())
+
+    # cant run this script as root
+    if is_root():
+        print("\nYou cannot run dman as root, sorry!\n")
+        return
+
+    # # have to be sudo to run this script
+    # if is_not_sudo():
+    #     print("You must be a sudo user to use dman, sorry!")
+    #     return
+
     print("\nInitializing steamcmd...", end="", flush=True)
 
     # initialize pathing
