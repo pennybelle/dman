@@ -233,6 +233,15 @@ def check_steamcmd(app_path, username, password):
             # Small delay to let the thread catch up
             time.sleep(0.2)
 
+            # install necessary default battleye rcon cfg
+            with open(
+                os.path.join(server_template, "battleye", "BEServer_x64.cfg"), "w"
+            ) as cfg:
+                cfg_contents = "RConPassword RCON_PASSWORD\n"
+                cfg_contents += "RestrictRCon 0\n"
+                cfg_contents += "RConPort 2303"
+                cfg.write(cfg_contents)
+
             # Ensure progress is at 100%
             progress.update(
                 template_task,
