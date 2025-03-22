@@ -5,7 +5,7 @@ import datetime
 import toml
 
 from shutil import copyfile
-from rich.console import Console
+# from rich.console import Console
 
 from modules.main_menu import main_menu, title_screen
 from modules.serverstate import ServerState
@@ -33,7 +33,7 @@ server_states = {}
 # lets go
 async def main():
     title_screen()
-    print("Initializing steamcmd...", end="", flush=True)
+    print("\nInitializing steamcmd...", end="", flush=True)
 
     # initialize pathing
     dman_config_path = os.path.join(os.getcwd(), "dman.toml")
@@ -92,7 +92,8 @@ async def main():
     ]
     log.debug(f"active_instances: {active_instances}")
 
-    print("Done")
+    print("Done\n")
+    # print("Initializing servers...", end="", flush=True)
 
     # confirm instance integrity and extract configurations
     instances_needing_edits = []
@@ -134,10 +135,7 @@ async def main():
         log.error(f"Error validating workshop mods: {e}")
         mod_dict = {}  # Use empty dict if validation fails
 
-    if active_instances:
-        print("Initializing servers...", end="")
-
-    else:
+    if not active_instances:
         print("No active instances, enable them in dman.toml :3")
         return
 
@@ -243,12 +241,12 @@ async def main():
 
     # Print server info
     log.info(f"All enabled servers started. Summary: {server_instances}")
-    if active_instances:
-        print("Done")
-        await asyncio.sleep(3)
-        # cached_menu = main_menu(server_states)
-        # cached_states = server_states.copy()
-        # main_menu(server_states)
+    # print("Done")
+    await asyncio.sleep(5)
+    # if active_instances:
+    #     cached_menu = main_menu(server_states)
+    #     cached_states = server_states.copy()
+    #     main_menu(server_states)
 
     # Before the main loop
     cached_states = {}

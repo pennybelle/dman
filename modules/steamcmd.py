@@ -329,7 +329,7 @@ def find_steam_workshop_path(app_id, app_path):
 
 # ensure mod installation in workshop and server root
 def validate_workshop_mods(username, server_configs, app_path):
-    print("Validating mods...", end="", flush=True)
+    print("\nValidating mods...", end="", flush=True)
     steamcmd_path = os.path.join(app_path, "steamcmd")
     mod_templates_path = os.path.join(
         steamcmd_path, "steamapps", "workshop", "content", "221100"
@@ -504,7 +504,7 @@ def validate_workshop_mods(username, server_configs, app_path):
         workshop_mods_by_name[name] = mod_id
         known_mod_names[name] = mod_id
 
-    print("Done")
+    print("Done\n")
 
     return workshop_mods_by_id
 
