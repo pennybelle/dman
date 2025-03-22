@@ -341,7 +341,7 @@ async def start_server(
     ]
 
     # Log complete command for debugging
-    log.debug(f"[{instance}] Launch command: {' '.join(args)}")
+    log.debug(f"[{instance}] Launch command: {' '.join(args).strip()}")
 
     try:
         process = await asyncio.create_subprocess_exec(

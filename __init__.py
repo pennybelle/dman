@@ -6,6 +6,7 @@ import datetime
 import toml
 
 from shutil import copyfile
+from os import system, name
 
 from modules.format import print_center
 from modules.main_menu import main_menu, title_screen
@@ -13,17 +14,12 @@ from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
 from modules.steamcmd import (
     check_steamcmd,
-    # check_server_template,
     validate_workshop_mods,
     import_mods,
 )
 from modules.servers import check_servers, validate_server_files, start_server
 
-# from __logger__ import setup_logger
-
 log = logging.getLogger(__name__)
-# setup_logger(level=10, stream_logs=False)
-
 
 # Dictionary to track server states
 server_states = {}
@@ -105,9 +101,7 @@ async def main():
         key for key in instance_info.keys() if instance_info[key] is not True
     ]
     log.debug(f"active_instances: {active_instances}")
-
     print("Done\n")
-    # print("Initializing servers...", end="", flush=True)
 
     # confirm instance integrity and extract configurations
     instances_needing_edits = []
@@ -145,6 +139,7 @@ async def main():
     try:
         mod_dict = validate_workshop_mods(username, server_configs, app_path)
         log.debug(f"mod_dict: {mod_dict}")
+
     except Exception as e:
         log.error(f"Error validating workshop mods: {e}")
         mod_dict = {}  # Use empty dict if validation fails
@@ -170,9 +165,28 @@ async def main():
         server_mods = server_info["server_mods"]
         logs = server_info["logs"]
 
-        rcon_info = server_config["server"]["rcon"]
-        rcon_port = rcon_info["port"]
-        rcon_pass = rcon_info["password"]
+        # rcon_info = server_config["server"]["rcon"]
+        # ensure battleye configos.path.join(
+        default_be_config_path = os.path.join(
+            os.getcwd(),
+            "app",
+            "steamcmd",
+            "server_template",
+            "battleye",
+            "BEServer_x64.cfg",
+        )
+        be_config_path = os.path.join(
+            app_path, "servers", instance, "battleye", "BEServer_x64.cfg"
+        )
+
+        if os.path.exists(be_config_path) is not True:
+            copyfile(default_be_config_path, be_config_path)
+
+        # gather rcon info from be config
+        with open(be_config_path, "r") as cfg:
+            cfg_contents = cfg.readlines()
+            rcon_pass = cfg_contents[0].replace("RConPassword", "").strip()
+            rcon_port = int(cfg_contents[2].replace("RConPort", "").strip())
 
         is_active = instance_info[instance]
 
@@ -255,25 +269,13 @@ async def main():
 
     # Print server info
     log.info(f"All enabled servers started. Summary: {server_instances}")
-    # print("Done")
     await asyncio.sleep(5)
-    # if active_instances:
-    #     cached_menu = main_menu(server_states)
-    #     cached_states = server_states.copy()
-    #     main_menu(server_states)
 
     # Before the main loop
     cached_states = {}
     for server, data in server_states.items():
         cached_states[server] = {"state": data["state"], "players": data["players"]}
     main_menu(server_states)  # Show initial state
-
-    # print("Servers running:")
-    # for server in server_instances:
-    #     log.info(
-    #         f"Instance: {server['instance']}, PID: {server['pid']}, Port: {server['port']}"
-    #     )
-    #     print(f" - {server['instance']}")
 
     # Set up restart scheduling
     scheduling_tasks = []
@@ -313,18 +315,6 @@ async def main():
                     if server_id in stopped_servers:
                         stopped_servers.remove(server_id)
 
-            # print(server_states)
-            # print(cached_states)
-
-            # for server, data in server_states.items():
-            #     if server in cached_states and (
-            #         data["state"] != cached_states[server]["state"]
-            #         or data["players"] != cached_states[server]["players"]
-            #     ):
-            #         main_menu(server_states)
-            #         cached_states = server_states.copy()
-            #         break  # prevent multiple menu refreshes in one cycle
-
             needs_update = False
             for server, data in server_states.items():
                 # Check if server is new or if state/players have changed
@@ -363,7 +353,8 @@ async def shutdown_servers(server_instances):
         return
 
     log.info("Shutdown requested. Stopping all servers...")
-    print("losing dman...")
+    system("cls" if name == "nt" else "clear")
+    print_center("Closing dman...", beginning="\n")
 
     # Send terminate signal to all servers
     for server in server_instances:

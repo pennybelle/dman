@@ -10,5 +10,8 @@ def get_console_size():
 
 
 def print_center(text, beginning="\n", end=""):
-    whitespace = (get_console_size()[0] // 2 - ((len(text) - 1) // 2)) - 1
+    whitespace = (get_console_size()[0] // 2 - ((len(text) - 1) // 2)) - 3
     print(f"{beginning}{' ' * whitespace}{text}", end=end, flush=True)
+
+
+# TODO: add to main loop a check for different console size, reprint main_menu if true

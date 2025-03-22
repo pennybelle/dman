@@ -233,15 +233,6 @@ def check_steamcmd(app_path, username, password):
             # Small delay to let the thread catch up
             time.sleep(0.2)
 
-            # install necessary default battleye rcon cfg
-            with open(
-                os.path.join(server_template, "battleye", "BEServer_x64.cfg"), "w"
-            ) as cfg:
-                cfg_contents = "RConPassword RCON_PASSWORD\n"
-                cfg_contents += "RestrictRCon 0\n"
-                cfg_contents += "RConPort 2303"
-                cfg.write(cfg_contents)
-
             # Ensure progress is at 100%
             progress.update(
                 template_task,
@@ -254,7 +245,16 @@ def check_steamcmd(app_path, username, password):
                     f"Failed to install server template with return code: {process.returncode}"
                 )
                 raise RuntimeError("Server template installation failed")
-        # print("Done")
+            # print("Done")
+
+            # install necessary default battleye rcon cfg
+            with open(
+                os.path.join(server_template, "battleye", "BEServer_x64.cfg"), "w"
+            ) as cfg:
+                cfg_contents = "RConPassword RCON_PASSWORD\n"
+                cfg_contents += "RestrictRCon 0\n"
+                cfg_contents += "RConPort 2303"
+                cfg.write(cfg_contents)
 
     log.info("steamcmd setup complete")
 
@@ -685,9 +685,9 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
         if processed_name:
             processed_server.append(processed_name)
 
-    # Add a sync point here - ensure all file operations are complete
+    # Ensure all file operations are complete
     # Wait for any potential file operations to complete
-    time.sleep(3)  # Increased from 2 to 3 seconds for safety
+    time.sleep(3)
 
     # create updated mod strings
     client_mods = f"@{';@'.join(processed_client)}" if processed_client else ""

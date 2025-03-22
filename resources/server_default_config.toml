@@ -7,7 +7,3 @@ discord_webhook = '' # mod download updates can be posted to discord
 client_mods = '' # put mod ids to download and install mods, format is '@mod1;@mod2;@mod3'
 server_mods = '' # same for server mods :3
 logs='' # enable logs if desired, log options include the following: '-dologs -adminlog -netlog'
-
-[server.rcon]
-port = 2303 # default rcon port
-password = "RCON_PASSWORD" # change this!

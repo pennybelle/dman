@@ -3,7 +3,6 @@ import struct
 import socket
 import asyncio
 import os
-import toml
 import datetime
 
 # from dman import server_states
@@ -53,6 +52,38 @@ class RCONClient:
             if self.socket:
                 self.socket.close()
             return False
+
+    # async def connect(self, retries=3, delay=5):
+    #     """Connect to the RCON server with retries"""
+    #     for attempt in range(retries):
+    #         try:
+    #             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #             self.socket.settimeout(10)
+    #             self.socket.connect((self.host, self.port))
+    #             log.info(f"Connected to RCON at {self.host}:{self.port}")
+
+    #             result = await self.authenticate()
+    #             if result:
+    #                 self.authenticated = True
+    #                 return True
+
+    #             log.warning(
+    #                 f"RCON authentication failed, attempt {attempt + 1}/{retries}"
+    #             )
+    #         except Exception as e:
+    #             log.warning(
+    #                 f"RCON connection error (attempt {attempt + 1}/{retries}): {e}"
+    #             )
+    #             if self.socket:
+    #                 self.socket.close()
+    #                 self.socket = None
+
+    #         if attempt < retries - 1:
+    #             log.info(f"Retrying RCON connection in {delay} seconds...")
+    #             await asyncio.sleep(delay)
+
+    #     log.error(f"Failed to connect to RCON after {retries} attempts")
+    #     return False
 
     async def authenticate(self):
         """Authenticate with the RCON server using the provided password"""
@@ -342,17 +373,23 @@ async def schedule_server_restart(
         restart_delay: Time in seconds to wait between kicking players and restart (default 60)
         warning_time: Time in seconds to warn players before kicking begins (default 300, 5 minutes)
     """
+
     if instance_name not in server_states:
         log.error(f"Cannot restart unknown server: {instance_name}")
         return
 
     # Get server config to find RCON password
-    server_config_path = os.path.join(app_path, "servers", instance_name, "server.toml")
+    be_rcon_config = os.path.join(
+        app_path, "servers", instance_name, "battleye", "BEServer_x64.cfg"
+    )
 
     try:
-        server_config = toml.load(server_config_path)
-        rcon_port = server_config.get("server", {}).get("rcon", {}).get("port")
-        rcon_password = server_config.get("server", {}).get("rcon", {}).get("password")
+        # rip rcon password and port from be config
+        with open(be_rcon_config, "r") as cfg:
+            cfg = cfg.readlines()
+
+            rcon_password = cfg[0].replace("RConPassword", "").strip()
+            rcon_port = int(cfg[2].replace("RConPort", "").strip())
 
         if not rcon_password:
             log.error(
@@ -360,10 +397,15 @@ async def schedule_server_restart(
             )
             return
 
+        # # Wait 30 seconds before trying to connect
+        # log.info(f"[{instance_name}] Waiting for server to initialize RCON...")
+        # await asyncio.sleep(10)
+
         # Send warning messages at intervals
-        rcon = RCONClient(host="127.0.0.1", port=rcon_port, password=rcon_password)
+        rcon = RCONClient(host="192.168.1.15", port=rcon_port, password=rcon_password)
 
         connected = await rcon.connect()
+
         if not connected:
             log.error(f"[{instance_name}] Failed to connect to RCON for warnings")
             return
