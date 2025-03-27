@@ -16,7 +16,7 @@ from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
 from modules.steamcmd import (
     check_steamcmd,
-    update_servers,
+    # update_servers,
     validate_workshop_mods,
     import_mods,
     check_and_update_mods,
@@ -129,10 +129,10 @@ async def main():
             if os.path.exists(config_path):
                 server_configs.append(toml.load(config_path))
 
-        print()  # add newline in ui
-        check_and_update_mods(
-            username, password, server_configs, app_path, force_check=True
-        )
+        # print()  # add newline in ui
+        # check_and_update_mods(
+        #     username, password, server_configs, app_path, force_check=True
+        # )
 
         log.debug(f"server_configs: {server_configs}")
     else:
@@ -284,7 +284,7 @@ async def main():
 
     # Print server info
     log.info(f"All enabled servers started. Summary: {server_instances}")
-    await asyncio.sleep(5)
+    await asyncio.sleep(2)
 
     # Before the main loop
     cached_states = {}
@@ -305,8 +305,6 @@ async def main():
             )
         )
 
-    cached_res = []
-
     def get_console_size():
         # gather raw output from console
         # console_width = check_output(["stty", "size"], stdout=PIPE)
@@ -319,12 +317,14 @@ async def main():
 
         return w, h
 
+    cached_res = list(get_console_size())
+
     # Main monitoring loop - we'll return the server_instances so they can be cleaned up
     try:
         while True:
             running_servers = [instance for instance in active_instances]
             stopped_servers = [instance for instance in inactive_instances]
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)  # update CLI UI every tenth of a second
 
             # Check for crashed servers
             for server_id, state in list(server_states.items()):
@@ -361,11 +361,16 @@ async def main():
                     needs_update = True
                     break  # Also check for removed servers
 
-            w, h = list(get_console_size())
-            for dimension in cached_res:
-                if dimension != [w, h]:
-                    needs_update = True
-                    break
+            # w, h = list(get_console_size())
+            # for dimension in cached_res:
+            res = list(get_console_size())
+            # print(res, cached_res)
+            # await asyncio.sleep(1)
+            if res != cached_res:
+                needs_update = True
+                cached_res = res
+            # else:
+            #     needs_update = False
 
             if needs_update:
                 main_menu(server_states)

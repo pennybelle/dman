@@ -948,11 +948,10 @@ def check_and_update_mods(
     if not default_workshop_path:
         default_workshop_path = mod_templates_path
 
-    # Console width for progress bar
+    console = Console()
     w, h = get_console_size()
     terminal_width = w
     bar_width = terminal_width - 50
-    console = Console()
 
     # Initialize progress bar for update checking
     with Progress(
@@ -970,6 +969,10 @@ def check_and_update_mods(
 
         # Use SteamCMD to query workshop item details for each mod
         for i, mod_id in enumerate(all_mod_ids):
+            # Console width for progress bar
+            w, h = get_console_size()
+            terminal_width = w
+            BarColumn(terminal_width - 50)
             if not mod_id.isdigit() or len(mod_id) != 10:
                 continue
 
