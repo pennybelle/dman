@@ -42,7 +42,7 @@ def is_root():
 
 # lets go
 async def main():
-    title_screen()
+    # title_screen()
 
     # cant run this script as root
     if is_root():
