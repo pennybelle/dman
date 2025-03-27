@@ -65,11 +65,11 @@ def main_menu(server_states):
     )
 
     # Calculate relative column widths based on console width
-    server_width = int(w * 0.50)  # 50% of width
-    state_width = int(w * 0.10)  # 10% of width
-    players_width = int(w * 0.10)  # 10% of width
-    pid_width = int(w * 0.10)  # 10% of width
-    port_width = int(w * 0.10)  # 10% of width
+    server_width = int(w * 0.30)  # 30% of width
+    state_width = int(w * 0.20)  # 15% of width
+    players_width = int(w * 0.10)  # 15% of width
+    pid_width = int(w * 0.15)  # 15% of width
+    port_width = int(w * 0.15)  # 15% of width
 
     # Add columns with specified widths
     table.add_column("Server", style="", width=server_width, no_wrap=True)
@@ -106,8 +106,8 @@ def main_menu(server_states):
             state_style = "green"
             server_style = "rgb(255,161,229)"
         elif state_text == "STOPPED":
-            state_style = "dim"
-            server_style = "dim"
+            state_style = "rgb(176,176,176)"
+            server_style = "rgb(176,176,176)"
         elif state_text == "WARNING":
             server_style = "rgb(255,161,229)"
             state_style = "red"
@@ -116,10 +116,10 @@ def main_menu(server_states):
             server_style = "rgb(255,161,229)"
         elif state_text == "CRASHED":
             state_style = "red"
-            server_style = "dim"
+            server_style = "rgb(176,176,176)"
         else:
-            state_style = "dim"
-            server_style = "dim"
+            state_style = "rgb(176,176,176)"
+            server_style = "rgb(176,176,176)"
 
         table.add_row(
             f"[{server_style}]{server}[/{server_style}]",

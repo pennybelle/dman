@@ -5,10 +5,11 @@ import time
 import threading
 import re
 import shutil
+import json
 
 from modules.format import print_center
 
-from shutil import copytree
+from shutil import copytree, ignore_patterns
 from subprocess import check_output
 from rich.console import Console
 from rich.progress import (
@@ -20,8 +21,9 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-
 log = logging.getLogger(__name__)
+
+console = Console()
 
 
 def get_console_size():
@@ -44,8 +46,6 @@ def check_steamcmd(app_path, username, password):
     # Calculate bar width based on terminal width
     # Subtract space for other columns (spinner, text, percentage, time)
     bar_width = terminal_width - 50  # Adjust this value as needed
-
-    console = Console()
 
     if not os.path.isdir(steamcmd):
         with Progress(
@@ -257,6 +257,145 @@ def check_steamcmd(app_path, username, password):
                 cfg.write(cfg_contents)
 
     log.info("steamcmd setup complete")
+
+
+def update_servers(app_path, username, password):
+    steamcmd = os.path.join(app_path, "steamcmd")
+    # console = Console()
+
+    # print(servers)
+
+    # Get terminal width
+    w, h = get_console_size()
+    terminal_width = w
+
+    # Calculate bar width based on terminal width
+    # Subtract space for other columns (spinner, text, percentage, time)
+    bar_width = terminal_width - 50  # Adjust this value as needed
+
+    # for server in servers:
+    server_template_path = os.path.join(app_path, "steamcmd", "server_template")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=bar_width),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+        expand=True,  # Ensure the progress bar expands to fill available space
+    ) as progress:
+        log.info("Server template not found, installing (this will take a while)...")
+        # os.makedirs(server_template, exist_ok=True)
+
+        steamcmd_sh = os.path.join(steamcmd, "steamcmd.sh")
+        if not os.path.exists(steamcmd_sh):
+            log.error(f"steamcmd.sh not found at {steamcmd_sh}")
+            raise FileNotFoundError(f"steamcmd.sh not found at {steamcmd_sh}")
+
+        # Create a task for the server template installation
+        template_task = progress.add_task(
+            "[yellow]Updating Servers...",
+            total=100,
+        )
+
+        # Process running flag
+        process_running = True
+
+        # Run steamcmd with correct arguments using Popen for real-time output
+        process = subprocess.Popen(
+            [
+                steamcmd_sh,
+                f"+force_install_dir {server_template_path}",
+                f"+login {username} {password}",
+                "+app_update 223350",
+                "+quit",
+            ],
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+
+        # Regex to extract progress percentage from SteamCMD output
+        progress_pattern = re.compile(r"Update state \(0x\d+\) (\d+)%.*")
+
+        # Current progress percentage
+        current_progress = 0
+
+        # Function to parse output and update progress
+        def update_template_progress():
+            nonlocal current_progress
+            for line in iter(process.stdout.readline, ""):
+                if not process_running:
+                    break
+
+                match = progress_pattern.search(line)
+                if match:
+                    percent = int(match.group(1))
+                    current_progress = percent
+                    progress.update(template_task, completed=percent)
+                log.debug(f"SteamCMD install output: {line.strip()}")
+
+            # Process stderr
+            for line in iter(process.stderr.readline, ""):
+                if not process_running:
+                    break
+                log.error(f"SteamCMD install error: {line.strip()}")
+
+        # Start progress updater in a thread
+        progress_thread = threading.Thread(target=update_template_progress, daemon=True)
+        progress_thread.start()
+
+        # Wait for process to complete
+        process.wait()
+
+        instances = [
+            d
+            for d in os.listdir(os.path.join(app_path, "servers"))
+            if os.path.isdir(os.path.join(app_path, "servers", d))
+        ]
+
+        # Mark process as completed
+        process_running = False
+
+        # Small delay to let the thread catch up
+        time.sleep(0.2)
+
+        for server in instances:
+            server_path = os.path.join(app_path, "servers", server)
+            if server_path:
+                copytree(
+                    src=server_template_path,
+                    dst=server_path,
+                    ignore=ignore_patterns(
+                        "*.xml",
+                        "*.cfg",
+                        "*.json",
+                        "*.map",
+                        "*.c",
+                        "*.db",
+                        "*.bin",
+                        "*.001",
+                        "*.002",
+                        "*.txt",
+                    ),
+                    dirs_exist_ok=True,
+                )
+
+        # Ensure progress is at 100%
+        progress.update(
+            template_task,
+            completed=100,
+            description="[yellow]Server template installation complete",
+        )
+
+        if process.returncode != 0:
+            log.error(
+                f"Failed to install server template with return code: {process.returncode}"
+            )
+            raise RuntimeError("Server template installation failed")
 
 
 # find Steam path if it's not in expected location
@@ -697,3 +836,442 @@ def import_mods(app_path, instance, client_mods, server_mods, workshop_mods_by_i
     log.debug(f"updated server mods: {server_mods}")
 
     return client_mods, server_mods
+
+
+def check_and_update_mods(
+    username, password, server_configs, app_path, force_check=False
+):
+    """
+    Check if workshop mods have updates available and download them if needed.
+
+    Args:
+        username (str): Steam username
+        server_configs (list): List of server configuration dictionaries
+        app_path (str): Base application path
+        force_check (bool): Force update check even if last check was recent
+
+    Returns:
+        dict: Dictionary of updated mods (mod_id -> mod_name)
+    """
+    log.info("Checking for mod updates...")
+
+    # Path setup
+    steamcmd_path = os.path.join(app_path, "steamcmd")
+    mod_templates_path = os.path.join(
+        steamcmd_path, "steamapps", "workshop", "content", "221100"
+    )
+    os.makedirs(mod_templates_path, exist_ok=True)
+
+    # Path to store mod update metadata
+    update_metadata_path = os.path.join(app_path, "mod_update_metadata.json")
+
+    # Load existing metadata
+    update_metadata = {}
+    if os.path.exists(update_metadata_path):
+        try:
+            with open(update_metadata_path, "r") as f:
+                update_metadata = json.load(f)
+        except Exception as e:
+            log.warning(f"Failed to load mod update metadata: {e}")
+
+    # Get current time
+    current_time = time.time()
+
+    # Check if we've checked recently (within last 6 hours) and not forcing check
+    last_check_time = update_metadata.get("last_check_time", 0)
+    if not force_check and current_time - last_check_time < 21600:  # 6 hours in seconds
+        log.info(
+            f"Skipping mod update check - last check was {(current_time - last_check_time) / 3600:.1f} hours ago"
+        )
+        return {}
+
+    # Parse mod IDs from configs (same as in validate_workshop_mods)
+    all_mod_ids = set()
+    all_mod_names = set()
+    known_mod_names = {}
+
+    # Dictionary to store mod details
+    workshop_mods_by_id = {}
+
+    # First, build mapping from existing mods
+    if os.path.exists(mod_templates_path):
+        existing_mod_ids = [
+            d
+            for d in os.listdir(mod_templates_path)
+            if os.path.isdir(os.path.join(mod_templates_path, d))
+        ]
+
+        # Get names for existing mods
+        for mod_id in existing_mod_ids:
+            meta_path = os.path.join(mod_templates_path, mod_id, "meta.cpp")
+            name = mod_id
+
+            if os.path.exists(meta_path):
+                try:
+                    with open(meta_path) as cpp:
+                        lines = cpp.read().splitlines()
+
+                    for line in lines:
+                        if "name" in line:
+                            name = (
+                                line.replace('"', "")
+                                .replace(";", "")
+                                .replace("name =", "")
+                                .strip()
+                            )
+                            break
+                except Exception as e:
+                    log.warning(f"Error reading meta.cpp for mod {mod_id}: {e}")
+
+            workshop_mods_by_id[mod_id] = name
+            known_mod_names[name] = mod_id
+
+    # Extract mod IDs and names from configs
+    for config in server_configs:
+        # Process client mods
+        client_mods = config["server"]["info"]["client_mods"]
+        process_mod_string(client_mods, all_mod_ids, all_mod_names, known_mod_names)
+
+        # Process server mods
+        server_mods = config["server"]["info"]["server_mods"]
+        process_mod_string(server_mods, all_mod_ids, all_mod_names, known_mod_names)
+
+    # Get current workshop mod details
+    workshop_details = update_metadata.get("workshop_details", {})
+
+    # Get Steam API access for update checking
+    workshop_details_updated = False
+    mods_to_update = set()
+
+    # Get default workshop path
+    default_workshop_path = find_steam_workshop_path("221100", app_path)
+    if not default_workshop_path:
+        default_workshop_path = mod_templates_path
+
+    # Console width for progress bar
+    w, h = get_console_size()
+    terminal_width = w
+    bar_width = terminal_width - 50
+    console = Console()
+
+    # Initialize progress bar for update checking
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=bar_width),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+        expand=True,
+    ) as progress:
+        check_task = progress.add_task(
+            "[cyan]Checking for mod updates...", total=len(all_mod_ids)
+        )
+
+        # Use SteamCMD to query workshop item details for each mod
+        for i, mod_id in enumerate(all_mod_ids):
+            if not mod_id.isdigit() or len(mod_id) != 10:
+                continue
+
+            progress.update(
+                check_task, description=f"[cyan]Checking mod {mod_id}...", completed=i
+            )
+            log.debug(f"checking mod {mod_id}...")
+
+            # Check if mod exists in the workshop directory
+            mod_path = os.path.join(mod_templates_path, mod_id)
+            if not os.path.exists(mod_path):
+                # Mod doesn't exist locally, needs download
+                mods_to_update.add(mod_id)
+                continue
+
+            # Get last modified time of the mod directory
+            try:
+                local_mod_time = os.path.getmtime(mod_path)
+
+                # Get saved update details if available
+                mod_details = workshop_details.get(mod_id, {})
+                stored_update_time = mod_details.get("update_time", 0)
+
+                # Check if we need to query Steam for updates (once per day per mod)
+                need_query = (
+                    current_time - mod_details.get("last_query_time", 0) > 86400
+                )  # 24 hours
+
+                if need_query:
+                    # Use steamcmd to query workshop item details
+                    try:
+                        cmd = [
+                            "./steamcmd.sh",
+                            "+login",
+                            username,
+                            password,
+                            "+workshop_item_info",
+                            "221100",
+                            mod_id,
+                            "+quit",
+                        ]
+
+                        # Run with timeout
+                        process = subprocess.run(
+                            cmd,
+                            shell=False,
+                            cwd=steamcmd_path,
+                            timeout=60,  # 1 minute timeout per query
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                        )
+
+                        # Parse the output to find the last updated time
+                        update_time = 0
+                        for line in process.stdout.splitlines():
+                            if (
+                                "timetouched" in line.lower()
+                                or "time_updated" in line.lower()
+                            ):
+                                parts = line.split(":", 1)
+                                if len(parts) == 2:
+                                    try:
+                                        update_time = int(parts[1].strip())
+                                        break
+                                    except ValueError:
+                                        pass
+
+                        # Update the metadata
+                        if update_time > 0:
+                            mod_details["update_time"] = update_time
+                            mod_details["last_query_time"] = current_time
+                            workshop_details[mod_id] = mod_details
+                            workshop_details_updated = True
+
+                            # Check if update is needed
+                            if update_time > local_mod_time:
+                                log.info(f"Update available for mod {mod_id}")
+                                mods_to_update.add(mod_id)
+
+                    except subprocess.TimeoutExpired:
+                        log.warning(f"Timeout while querying mod {mod_id}")
+                    except Exception as e:
+                        log.warning(f"Error querying mod {mod_id}: {e}")
+
+                # Check based on stored update time if query wasn't done
+                elif stored_update_time > local_mod_time:
+                    log.info(f"Update needed for mod {mod_id} based on stored metadata")
+                    mods_to_update.add(mod_id)
+
+            except Exception as e:
+                log.warning(f"Error checking mod {mod_id} for updates: {e}")
+
+        # Update progress to complete
+        progress.update(
+            check_task,
+            completed=len(all_mod_ids),
+            description="[cyan]Mod update check complete",
+        )
+
+    # Update metadata with latest check time
+    update_metadata["last_check_time"] = current_time
+    update_metadata["workshop_details"] = workshop_details
+
+    # Save the metadata
+    try:
+        with open(update_metadata_path, "w") as f:
+            json.dump(update_metadata, f)
+    except Exception as e:
+        log.warning(f"Failed to save mod update metadata: {e}")
+
+    # If there are mods to update, download them
+    updated_mods = {}
+    if mods_to_update:
+        log.info(f"Updating {len(mods_to_update)} mods...")
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold yellow]{task.description}"),
+            BarColumn(bar_width=bar_width),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+            expand=True,
+        ) as progress:
+            update_task = progress.add_task(
+                f"[yellow]Updating {len(mods_to_update)} mods...",
+                total=len(mods_to_update),
+            )
+
+            # Download each mod that needs updating
+            for i, mod_id in enumerate(mods_to_update):
+                try:
+                    mod_name = workshop_mods_by_id.get(mod_id, mod_id)
+                    progress.update(
+                        update_task,
+                        description=f"[yellow]Updating mod {mod_name} ({mod_id})...",
+                        completed=i,
+                    )
+
+                    # Create command for workshop download
+                    cmd = [
+                        "./steamcmd.sh",
+                        "+login",
+                        username,
+                        password,
+                        "+workshop_download_item",
+                        "221100",
+                        mod_id,
+                        "+quit",
+                    ]
+
+                    # Process running flag for progress tracking
+                    process_running = True
+
+                    # Run steamcmd with correct arguments using Popen for real-time output
+                    process = subprocess.Popen(
+                        cmd,
+                        shell=False,
+                        cwd=steamcmd_path,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1,
+                        universal_newlines=True,
+                    )
+
+                    # Regex to extract progress percentage from SteamCMD output
+                    progress_pattern = re.compile(r"Update state \(0x\d+\) (\d+)%.*")
+
+                    # Current progress percentage
+                    current_progress = 0
+                    download_sub_task = progress.add_task(
+                        f"[green]Downloading {mod_name}...", total=100
+                    )
+
+                    # Function to parse output and update progress
+                    def update_download_progress():
+                        nonlocal current_progress
+                        for line in iter(process.stdout.readline, ""):
+                            if not process_running:
+                                break
+
+                            match = progress_pattern.search(line)
+                            if match:
+                                percent = int(match.group(1))
+                                current_progress = percent
+                                progress.update(download_sub_task, completed=percent)
+                            log.debug(f"SteamCMD download output: {line.strip()}")
+
+                        # Process stderr
+                        for line in iter(process.stderr.readline, ""):
+                            if not process_running:
+                                break
+                            log.error(f"SteamCMD download error: {line.strip()}")
+
+                    # Start progress updater in a thread
+                    progress_thread = threading.Thread(
+                        target=update_download_progress, daemon=True
+                    )
+                    progress_thread.start()
+
+                    # Wait for process to complete
+                    process.wait()
+
+                    # Mark process as completed
+                    process_running = False
+
+                    # Small delay to let the thread catch up
+                    time.sleep(0.2)
+
+                    # Ensure progress is at 100%
+                    progress.update(
+                        download_sub_task,
+                        completed=100,
+                        description=f"[green]Download complete: {mod_name}",
+                    )
+
+                    if process.returncode != 0:
+                        log.error(
+                            f"Failed to download mod {mod_id} with return code: {process.returncode}"
+                        )
+                    else:
+                        log.info(f"Successfully updated mod {mod_id}")
+
+                        # create symlink for the downloaded mod if needed
+                        default_mod_path = os.path.join(default_workshop_path, mod_id)
+                        target_mod_path = os.path.join(mod_templates_path, mod_id)
+
+                        if (
+                            os.path.exists(default_mod_path)
+                            and default_mod_path != target_mod_path
+                        ):
+                            # Remove existing symlink if it exists
+                            if os.path.exists(target_mod_path):
+                                if os.path.islink(target_mod_path):
+                                    os.unlink(target_mod_path)
+                                else:
+                                    shutil.rmtree(target_mod_path)
+
+                            try:
+                                os.symlink(default_mod_path, target_mod_path)
+                                log.info(
+                                    f"Created symlink for mod {mod_id} from {default_mod_path} to {target_mod_path}"
+                                )
+                            except Exception as e:
+                                log.warning(
+                                    f"Failed to create symlink for mod {mod_id}: {e}"
+                                )
+
+                        # Read updated mod name from meta.cpp
+                        meta_path = os.path.join(mod_templates_path, mod_id, "meta.cpp")
+                        name = mod_id
+
+                        if os.path.exists(meta_path):
+                            try:
+                                with open(meta_path) as cpp:
+                                    lines = cpp.read().splitlines()
+
+                                for line in lines:
+                                    if "name" in line:
+                                        name = (
+                                            line.replace('"', "")
+                                            .replace(";", "")
+                                            .replace("name =", "")
+                                            .strip()
+                                        )
+                                        break
+                            except Exception as e:
+                                log.warning(
+                                    f"Error reading meta.cpp for mod {mod_id}: {e}"
+                                )
+
+                        # Store the updated mod
+                        workshop_mods_by_id[mod_id] = name
+                        updated_mods[mod_id] = name
+
+                except subprocess.TimeoutExpired:
+                    log.error(f"Timeout while updating mod {mod_id}")
+                except Exception as e:
+                    log.error(f"Error updating mod {mod_id}: {e}")
+
+                # Remove the download subtask
+                progress.remove_task(download_sub_task)
+
+            # Update progress to complete
+            progress.update(
+                update_task,
+                completed=len(mods_to_update),
+                description="[yellow]Mod updates complete",
+            )
+
+    else:
+        log.info("All mods are up to date")
+
+    # If any mods were updated, we need to update the servers
+    if updated_mods:
+        # Handle server side updates here or call other functions as needed
+        log.info(f"Updated {len(updated_mods)} mods: {list(updated_mods.values())}")
+
+        # You might want to copy the updated mods to server directories here
+        # or call your existing import_mods function for each server instance
+
+    return updated_mods

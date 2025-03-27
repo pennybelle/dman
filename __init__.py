@@ -5,8 +5,10 @@ import logging
 import datetime
 import toml
 
+from subprocess import check_output
 from shutil import copyfile
 from os import system, name
+from rich.console import Console
 
 from modules.format import print_center
 from modules.main_menu import main_menu, title_screen
@@ -14,12 +16,17 @@ from modules.serverstate import ServerState
 from modules.rconclient import schedule_server_restart
 from modules.steamcmd import (
     check_steamcmd,
+    update_servers,
     validate_workshop_mods,
     import_mods,
+    check_and_update_mods,
 )
 from modules.servers import check_servers, validate_server_files, start_server
+# from modules.update_servers import update_servers
 
 log = logging.getLogger(__name__)
+
+console = Console()
 
 # Dictionary to track server states
 server_states = {}
@@ -92,6 +99,9 @@ async def main():
     # ensure servers directory is initiated
     check_servers(servers_path)
 
+    # # update servers to latest version
+    # update_servers(app_path, username, password)
+
     # # initialize instances to be run using dman config
     instance_keys = [key for key in instance_info.keys()]
     active_instances = [
@@ -118,6 +128,11 @@ async def main():
             )
             if os.path.exists(config_path):
                 server_configs.append(toml.load(config_path))
+
+        print()  # add newline in ui
+        check_and_update_mods(
+            username, password, server_configs, app_path, force_check=True
+        )
 
         log.debug(f"server_configs: {server_configs}")
     else:
@@ -290,6 +305,20 @@ async def main():
             )
         )
 
+    cached_res = []
+
+    def get_console_size():
+        # gather raw output from console
+        # console_width = check_output(["stty", "size"], stdout=PIPE)
+        # format raw data into int
+        # console_width = int(console_width.communicate().decode())
+
+        console_size = check_output(["stty", "size"]).decode("utf-8").split()
+        h = int(console_size[0])
+        w = int(console_size[1])
+
+        return w, h
+
     # Main monitoring loop - we'll return the server_instances so they can be cleaned up
     try:
         while True:
@@ -329,6 +358,12 @@ async def main():
             # Also check for removed servers
             for server in list(cached_states.keys()):
                 if server not in server_states:
+                    needs_update = True
+                    break  # Also check for removed servers
+
+            w, h = list(get_console_size())
+            for dimension in cached_res:
+                if dimension != [w, h]:
                     needs_update = True
                     break
 
